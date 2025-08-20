@@ -1,0 +1,185 @@
+/* src/assets/styles/quantity-control.css */
+
+/* Основной контейнер */
+.quantity-control-widget {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Кнопка "КУПИТЬ" */
+.quantity-control-widget__buy-btn {
+  padding: 10px 30px;
+  background: #252525;
+  border-radius: 100px;
+  border: none;
+  color: white;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 14.53px;
+  letter-spacing: 0.12px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.quantity-control-widget__buy-btn:disabled {
+  background: #dad8d7;
+  cursor: not-allowed;
+}
+
+.quantity-control-widget__buy-btn:hover:not(:disabled) {
+  background: #3d3d3d;
+}
+
+/* Контейнер для кнопок +/- и счетчика */
+.quantity-control-widget__buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Кнопки + и - */
+.quantity-control-widget__btn {
+  width: 39.08px;
+  height: 37.28px;
+  background: #252525;
+  border-radius: 100px;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+}
+
+.quantity-control-widget__btn:disabled {
+  background: #dad8d7; /* возвращаем серый цвет */
+  cursor: not-allowed;
+}
+
+.quantity-control-widget__btn:hover:not(:disabled) {
+  background: #3d3d3d;
+}
+
+/* Счетчик количества */
+.quantity-control-widget__count {
+  color: #504f4f;
+  font-size: 16px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 19.37px;
+  letter-spacing: 0.16px;
+  min-width: 16px;
+  text-align: center;
+}
+
+/* Иконки + и - */
+.quantity-control-widget__minus-icon,
+.quantity-control-widget__plus-icon {
+  width: 16px;
+  height: 16px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Общие стили для линий в иконках */
+.quantity-control-widget__minus-icon::before,
+.quantity-control-widget__plus-icon::before,
+.quantity-control-widget__plus-icon::after {
+  content: '';
+  position: absolute;
+  background: white;
+  border-radius: 100px;
+}
+
+/* Горизонтальная линия для обеих иконок */
+.quantity-control-widget__minus-icon::before,
+.quantity-control-widget__plus-icon::before {
+  width: 12px;
+  height: 2.25px;
+  left: 2px;
+  top: 6.88px;
+}
+
+/* Вертикальная линия только для плюса */
+.quantity-control-widget__plus-icon::after {
+  width: 2.25px;
+  height: 12px;
+  left: 7.12px;
+  top: 2px;
+}
+
+/* Состояния disabled для иконок */
+.quantity-control-widget__btn:disabled .quantity-control-widget__minus-icon::before,
+.quantity-control-widget__btn:disabled .quantity-control-widget__plus-icon::before,
+.quantity-control-widget__btn:disabled .quantity-control-widget__plus-icon::after {
+  background: white;
+  opacity: 0.8;
+}
+
+/* Модификации для отображения в корзине */
+.quantity-control-widget--cart {
+  gap: 8px;
+}
+
+.quantity-control-widget--cart .quantity-control-widget__buttons {
+  gap: 8px;
+}
+
+.quantity-control-widget--cart .quantity-control-widget__btn {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quantity-control-widget--cart .quantity-control-widget__count {
+  font-size: 16px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.quantity-control-widget--cart .quantity-control-widget__minus-icon,
+.quantity-control-widget--cart .quantity-control-widget__plus-icon {
+  transform: scale(0.8);
+  margin: 0;
+}
+
+.quantity-control-widget--cart .quantity-control-widget__minus-icon::before,
+.quantity-control-widget--cart .quantity-control-widget__plus-icon::before,
+.quantity-control-widget--cart .quantity-control-widget__plus-icon::after {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Медиа-запросы для мобильных устройств */
+/* @media (max-width: 768px) {
+  .quantity-control-widget__buy-btn {
+    padding: 8px 24px;
+    font-size: 11px;
+  }
+
+  .quantity-control-widget__buttons {
+    gap: 12px;
+  }
+
+  .quantity-control-widget__btn {
+    width: 34px;
+    height: 32px;
+  }
+
+  .quantity-control-widget__count {
+    font-size: 14px;
+  }
+} */

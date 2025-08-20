@@ -1,0 +1,284 @@
+:root {
+  --business-text: #252525;
+  --business-balance-background: #fff2c9;
+  --business-balance-border: #ffb43d;
+  --business-balance-shadow: #ba8b41;
+  --business-balance-value: #252525;
+
+  --business-action-btn-height: 35px;
+  --business-action-btn-background: #252525;
+  --business-action-disabled-btn-background: #dad8d7;
+  --business-earn-button: #66ca1a;
+  --business-earn-button-height: 35px;
+
+  --business-link-copied-background: #252525;
+  --business-link-copied-width: 122px;
+  --business-link-copied-height: 17px;
+}
+
+.business-title {
+  color: var(--business-text);
+  font-size: 12px;
+  font-family: 'Open Sans Hebrew', sans-serif;
+  font-weight: 700;
+}
+
+.business-text {
+  color: var(--business-text);
+  font-size: 10px;
+  font-family: 'Open Sans Hebrew', sans-serif;
+  font-weight: 700;
+  padding: 0 10px;
+}
+
+.business-balance {
+  background-color: var(--business-balance-background);
+  border-radius: 20px;
+  border: solid 5px var(--business-balance-border);
+  box-shadow: 0 2px 4px 0 var(--business-balance-shadow) inset;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40px 17px;
+  margin-top: 5px;
+  margin-bottom: 14px;
+}
+
+.business-balance__info {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.business-balance__value {
+  color: var(--business-text);
+  font-size: 22px;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 800;
+}
+
+.business-partners {
+  margin-top: 15px;
+}
+
+.action-button {
+  margin: 0;
+  height: var(--business-action-btn-height);
+  padding: 10px 30px;
+  background: var(--business-action-btn-background);
+  border: none;
+  border-radius: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-sizing: border-box;
+
+  color: white;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 14.53px;
+  letter-spacing: 0.12px;
+  text-transform: uppercase;
+}
+
+.action-button_conditions {
+  margin: 50px auto calc(var(--nav-height));
+  margin-top: 15px;
+}
+
+.action-button_show-all {
+  margin: 0 auto;
+}
+
+.action-button:disabled {
+  background: var(--business-action-disabled-btn-background);
+  cursor: not-allowed;
+}
+
+.earn-button {
+  width: 228px;
+  height: var(--business-earn-button-height);
+  padding: 10px 30px;
+  background: var(--business-earn-button);
+  border: none;
+  border-radius: 100px;
+  color: white;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.earn-button:disabled {
+  background: #dad8d7;
+  cursor: not-allowed;
+}
+
+.earn-button-container {
+  margin-top: 14px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.link-copied {
+  position: absolute;
+  bottom: 100%; /* поверх кнопки */
+  margin-bottom: 4px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  gap: 6px;
+
+  background-color: var(--business-link-copied-background);
+  width: var(--business-link-copied-width);
+  height: var(--business-link-copied-height);
+
+  pointer-events: none; /* не мешает клику по кнопке */
+}
+
+.link-copied p {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 8px;
+  vertical-align: middle;
+  color: #ffffff;
+}
+
+.link-copied-fade-enter-active,
+.link-copied-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.link-copied-fade-enter-from,
+.link-copied-fade-leave-to {
+  opacity: 0;
+}
+.link-copied-fade-enter-to,
+.link-copied-fade-leave-from {
+  opacity: 1;
+}
+
+/*User-Info*/
+.business-user-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #f0f0f0;
+  gap: 12px;
+}
+
+.business-user-info__icon {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -30px;
+  z-index: 1000;
+  width: 61px;
+  height: 61px;
+}
+
+.business-user-info__name {
+  font-family: 'Open Sans Hebrew', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.business-user-info__data {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 65px 1fr;
+  align-items: center;
+}
+
+.business-user-info__data-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.business-user-info__data span {
+  font-family: 'Open Sans Hebrew', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 100px;
+}
+
+.business-user-info__month-value {
+  display: flex;
+  align-items: center;
+  /*gap: 4px;*/
+}
+
+.business-user-info__month-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.business-user-info__month-value span {
+  font-family: 'Open Sans Hebrew', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.business-user-info__data p {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 8px;
+}
+
+.business-invited {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #252525;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  color: white;
+  padding: 12px 30px;
+}
+
+.business-invited__users {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.business-invited__user-icon {
+  width: 12px;
+  height: 12px;
+  color: white;
+}
+
+.business-invited__bonus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.business-invited p {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+}
+
+.business-invited span {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  background-color: white;
+  padding: 4px 12px;
+  border-radius: 100px;
+  color: #252525;
+}
+
+/*User-info end*/

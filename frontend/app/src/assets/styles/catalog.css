@@ -1,0 +1,401 @@
+/* src/assets/styles/catalog.css */
+
+/* Основные переменные для каталога */
+:root {
+  /* Цвета каталога */
+  --catalog-text-primary: #252525;
+  --catalog-text-secondary: #787878;
+  --catalog-button-color: #252525;
+  --catalog-button-disabled: #dad8d7;
+  --catalog-background: white;
+  --catalog-category-active: #ffb43d;
+
+  /* Шрифты (системные) */
+  --font-open-sans: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-open-sans-hebrew: 'Open Sans Hebrew', 'Open Sans', sans-serif;
+  --font-pontano: 'Pontano Sans', sans-serif;
+
+  /* Добавляем CSS-переменные для синхронизации паттерна */
+  --pattern-image: url('@/assets/images/bg.png');
+  --pattern-size: 392px 711px;
+  --pattern-opacity: 0.05;
+
+  /* Размеры для адаптивной верстки */
+  --container-width-mobile: 375px;
+  --container-width-tablet: 768px;
+  --container-width-desktop: 1200px;
+
+  /* Размеры карточки товара */
+  --card-width: 134px;
+  --card-height: 228px;
+  --card-image-size: 114px;
+  --grid-gap: 32px;
+
+  /* Служебные размеры */
+  --filters-height: 60px; /* высота блока фильтров */
+  --nav-bottom-spacing: 20px; /* отступ от навигационного бара */
+}
+
+/* Контейнер каталога */
+.catalog {
+  width: 100%;
+  min-height: var(--real-vh);
+  background: white;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: calc(var(--nav-height) + var(--keyboard-height));
+  z-index: 1;
+}
+
+/* Фоновый паттерн */
+.catalog-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--pattern-image) repeat;
+  background-size: var(--pattern-size);
+  opacity: var(--pattern-opacity);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.fixed-container {
+  position: relative;
+  z-index: 2;
+}
+
+/* Основной контейнер с контентом */
+.catalog-container {
+  width: 100%;
+  min-height: calc(var(--real-vh) - var(--nav-height));
+  padding-bottom: calc(var(--nav-height) + var(--keyboard-height));
+  position: relative;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Фиксированная обертка для фильтров */
+.filters-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  background: rgba(255, 255, 255, 1);
+  height: var(--filters-height);
+  transform: translateZ(0);
+}
+
+/* Добавляем фоновый паттерн для фильтров, синхронизированный с основным */
+.filters-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--pattern-image) repeat;
+  background-size: var(--pattern-size);
+  background-position: center 0; /* Привязываем к верху для синхронизации */
+  opacity: var(--pattern-opacity);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Скрываем скроллбар для всех браузеров */
+.catalog,
+.catalog-container {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.catalog::-webkit-scrollbar,
+.catalog-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Основной контент каталога */
+.catalog-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+/* Блок фильтров и поиска */
+.catalog-filters {
+  width: 100%;
+  max-width: 1400px;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  /* Добавляем z-index чтобы контент был над фоном */
+  position: relative;
+  z-index: 1;
+}
+
+/* Сетка с карточками товаров */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, var(--card-width));
+  gap: var(--grid-gap);
+  justify-content: center;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px;
+  margin-top: var(--filters-height);
+  margin-bottom: var(--nav-bottom-spacing);
+}
+
+/* Стили карточки товара в каталоге */
+.catalog .product-card {
+  width: var(--card-width);
+  height: var(--card-height);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Изображение товара в каталоге */
+.catalog .product-image {
+  width: var(--card-image-size);
+  height: var(--card-image-size);
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+
+.catalog .product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+/* Информация о товаре в каталоге */
+.catalog .product-details {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Название товара в каталоге */
+.catalog .product-name {
+  text-align: center;
+  color: var(--catalog-text-secondary);
+  font-size: 10px;
+  font-family: var(--font-open-sans-hebrew);
+  font-weight: 700;
+  line-height: 10px;
+  height: 20px; /* Фиксированная высота для двух строк */
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* Цена товара в каталоге */
+.catalog .product-price {
+  text-align: center;
+  color: var(--catalog-text-primary);
+  font-size: 16px;
+  font-family: var(--font-open-sans);
+  font-weight: 800;
+  line-height: 16px;
+  margin-bottom: 12px;
+}
+
+/* Наличие товара в каталоге */
+.catalog .product-stock {
+  text-align: center;
+  color: var(--catalog-text-secondary);
+  font-size: 10px;
+  font-family: var(--font-pontano);
+  font-weight: 400;
+  line-height: 10px;
+  margin-bottom: 12px;
+}
+
+/* Кнопка покупки в каталоге */
+.catalog .buy-button {
+  padding: 10px 30px;
+  background: var(--catalog-button-color);
+  border-radius: 100px;
+  border: none;
+  color: white;
+  font-size: 12px;
+  font-family: var(--font-inter);
+  font-weight: 700;
+  line-height: 14.53px;
+  letter-spacing: 0.12px;
+  cursor: pointer;
+  margin-top: 2px;
+  transition: background-color 0.2s ease;
+}
+
+.catalog .buy-button:disabled {
+  background: var(--catalog-button-disabled);
+  cursor: not-allowed;
+}
+
+/* Контроль количества в каталоге */
+.catalog .quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.catalog .quantity-btn {
+  width: 39.08px;
+  height: 37.28px;
+  padding: 8px;
+  background: var(--catalog-button-color);
+  border-radius: 100px;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+.catalog .quantity-btn:disabled {
+  background: var(--catalog-button-disabled);
+}
+
+.catalog .quantity {
+  color: #504f4f;
+  font-size: 16px;
+  font-family: var(--font-inter);
+  font-weight: 700;
+  line-height: 19.37px;
+  letter-spacing: 0.16px;
+}
+
+/* Состояния загрузки и пустого каталога */
+.loading-more,
+.no-products {
+  width: 100%;
+  text-align: center;
+  padding: 20px;
+  color: var(--catalog-text-secondary);
+}
+
+/* Селектор категорий */
+.category-selector {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  padding: 8px 0;
+  display: flex;
+  justify-content: center;
+}
+
+/* Скроллируемый контейнер категорий */
+.categories-scroll {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 0 16px;
+  max-width: fit-content;
+}
+
+/* Скрываем скроллбар в контейнере категорий */
+.categories-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Кнопка категории */
+.category-btn {
+  min-width: 80px;
+  height: 24px;
+  padding: 0 14px;
+  background: var(--catalog-button-disabled);
+  border: none;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-radius: 0;
+  flex-shrink: 0;
+}
+
+/* Текст в кнопке категории */
+.category-btn span {
+  text-align: center;
+  color: white;
+  font-size: 8px;
+  font-family: var(--font-inter);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.08px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Закругления для крайних кнопок */
+.category-btn.first-btn {
+  border-top-left-radius: 100px;
+  border-bottom-left-radius: 100px;
+}
+
+.category-btn.last-btn {
+  border-top-right-radius: 100px;
+  border-bottom-right-radius: 100px;
+}
+
+/* Активная категория */
+.category-btn.active {
+  background: var(--catalog-category-active);
+}
+
+/* Медиа-запросы для адаптивности */
+@media (min-width: 768px) {
+  .catalog-container {
+    max-width: var(--container-width-tablet);
+  }
+
+  .products-grid {
+    gap: var(--grid-gap);
+    padding: 16px 24px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .catalog-container {
+    max-width: var(--container-width-desktop);
+  }
+
+  .products-grid {
+    padding: 32px;
+  }
+
+  .catalog-filters {
+    gap: var(--grid-gap);
+    padding: 16px 32px;
+  }
+}

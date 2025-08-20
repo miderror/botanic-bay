@@ -1,0 +1,382 @@
+:root {
+  /* Цвета */
+  --checkout-text-primary: #252525;
+  --checkout-text-secondary: #787878;
+  --checkout-btn-primary: #252525;
+  --checkout-btn-success: #66ca1a;
+  --checkout-btn-disabled: #dad8d7;
+  --checkout-btn-accent: #ffb43d;
+  --checkout-section-bg: rgba(240.12, 240.12, 240.12, 0.4);
+
+  /* Размеры и отступы */
+  --checkout-section-gap: 17px;
+  --checkout-btn-height: 35px;
+
+  /* Новые переменные для секции доставки */
+  --delivery-section-width: 306px;
+  --delivery-section-height: 210px;
+  --delivery-section-padding: 23px 52px;
+  --delivery-toggle-height: 32px;
+  --delivery-toggle-btn-width: 98px;
+  --delivery-toggle-padding: 6px 14px;
+  --delivery-toggle-gap: 4px;
+  --delivery-address-gap: 8px;
+  --location-icon-size: 18px;
+  --location-icon-height: 21px;
+}
+
+/* Основной контейнер checkout */
+.basket-order {
+  display: flex;
+  flex-direction: column;
+  padding: 0px 37px 82px 37px;
+  min-height: 100%;
+  position: relative;
+}
+
+/* Общие стили секций */
+.checkout-section {
+  width: 100%;
+}
+
+.section-title {
+  color: var(--checkout-text-primary);
+  font-size: 12px;
+  font-family: 'Open Sans Hebrew', sans-serif;
+  font-weight: 700;
+  line-height: 12px;
+  margin-top: var(--checkout-section-gap);
+  margin-bottom: var(--checkout-section-gap);
+}
+
+/* Секция доставки */
+.delivery-section {
+  /*width: var(--delivery-section-width);*/
+  width: 100%;
+  height: var(--delivery-section-height);
+  padding: 23px 52px;
+  background: rgba(240.12, 240.12, 240.12, 0.4);
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 30px; /* Устанавливаем одинаковый отступ между всеми элементами */
+  margin: 0 auto;
+}
+
+.delivery-toggle {
+  display: flex;
+  justify-content: center;
+  gap: var(--delivery-toggle-gap);
+  margin: 0;
+}
+
+.toggle-btn {
+  width: var(--delivery-toggle-btn-width);
+  height: var(--delivery-toggle-height);
+  padding: var(--delivery-toggle-padding);
+  border: none;
+  background: var(--checkout-btn-primary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.toggle-btn.left {
+  border-radius: 100px 0 0 100px;
+}
+
+.toggle-btn.right {
+  border-radius: 0 100px 100px 0;
+}
+
+.toggle-btn.active {
+  background: var(--checkout-btn-accent);
+}
+
+.toggle-btn-text {
+  color: white;
+  font-size: 8px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 9.68px;
+  letter-spacing: 0.08px;
+  text-transform: uppercase;
+}
+
+.address-block {
+  margin: 0;
+  min-height: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center; /* Меняем на center для вертикального выравнивания */
+  gap: 8px;
+}
+
+.location-icon {
+  width: 18px;
+  height: 21px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  margin-top: 2px; /* Небольшой отступ сверху для визуального выравнивания с текстом */
+}
+
+.location-icon path {
+  fill: #191919;
+}
+
+.address-text {
+  color: #787878;
+  font-size: 10px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 12.1px;
+  letter-spacing: 0.1px;
+  /* Убираем ограничения для текста */
+  max-width: none;
+  white-space: normal; /* Разрешаем перенос */
+  text-align: left; /* Выравниваем текст по левому краю */
+  word-wrap: break-word; /* Разрешаем перенос длинных слов */
+}
+
+.address-action {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.action-button {
+  margin: 0;
+  height: var(--checkout-btn-height);
+  padding: 10px 30px;
+  background: var(--checkout-btn-primary);
+  border: none;
+  border-radius: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.action-button.disabled {
+  background: var(--checkout-btn-disabled);
+  cursor: not-allowed;
+}
+
+.action-button-text {
+  color: white;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 14.53px;
+  letter-spacing: 0.12px;
+  text-transform: uppercase;
+}
+
+.delivery-info {
+  color: var(--checkout-text-primary);
+  font-size: 12px;
+  font-family: 'Open Sans Hebrew', sans-serif;
+  font-weight: 700;
+  line-height: 12px;
+  margin-top: var(--checkout-section-gap);
+  margin-bottom: var(--checkout-section-gap);
+}
+
+/* Список товаров */
+.order-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.order-item {
+  padding: 16px 28px;
+  background: var(--checkout-section-bg);
+  backdrop-filter: blur(4px);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 51px;
+}
+
+/* Стили для единственного в списке товара */
+.order-item.single-item {
+  border-radius: 20px 20px 20px 20px;
+}
+
+/* Стиль для первого товара в списке */
+.order-item.first-item {
+  border-radius: 20px 20px 0 0;
+}
+
+/* Стиль для последнего товара в списке */
+.order-item.last-item {
+  border-radius: 0 0 20px 20px;
+}
+
+.item-image-container {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.item-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.item-quantity {
+  text-align: center;
+  color: var(--checkout-text-secondary);
+  font-size: 10px;
+  font-family: 'Pontano Sans', sans-serif;
+  font-weight: 400;
+  line-height: 10px;
+  white-space: nowrap; /* Запрещаем перенос строки */
+}
+
+.delivery-date {
+  text-align: right;
+  color: var(--checkout-text-primary);
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 14.53px;
+  letter-spacing: 0.12px;
+}
+
+/* Секция оплаты */
+.payment-section {
+  width: 100%;
+  height: 100%;
+  padding: 25px 15px;
+  background: var(--checkout-section-bg);
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto;
+}
+
+.payment-cards {
+  width: 276px;
+}
+
+.cards-row {
+  display: flex;
+  justify-content: center;
+}
+
+.card-frame {
+  height: 80px;
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.card-slot {
+  width: 100px;
+  height: 60px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center; /* горизонтальное центрирование */
+  align-items: center; /* вертикальное центрирование */
+  padding: 10px;
+}
+
+.card-slot.active {
+  border: 3px solid #66ca1a;
+}
+
+.payment-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* сохраняет пропорции изображения */
+  display: block; /* убирает возможные отступы снизу */
+  margin: auto; /* дополнительное центрирование */
+}
+
+/* Кнопка оплаты */
+.payment-section .action-button {
+  padding: 10px 30px;
+  background: #252525;
+  border-radius: 100px;
+  color: white;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 14.53px;
+  letter-spacing: 0.12px;
+  border: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.payment-section .action-button-text {
+  color: white;
+  text-transform: uppercase;
+}
+
+/* Итоговая сумма */
+.checkout-total-amount {
+  width: 306px;
+  color: #252525;
+  display: flex;
+  justify-content: space-between; /* Разносим текст и сумму по краям */
+  margin: var(--checkout-section-gap) auto;
+}
+
+.checkout-total-amount span {
+  font-size: 14px;
+  font-family: 'Open Sans Hebrew', sans-serif;
+  font-weight: 700;
+  line-height: 14px;
+}
+
+/* Нижняя панель */
+.checkout-navbar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--checkout-modal-width);
+  height: 81px;
+  background: rgba(36, 36, 36, 0.95);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pay-button {
+  width: 215px;
+  height: var(--checkout-btn-height);
+  padding: 10px 30px;
+  border: none;
+  border-radius: 100px;
+  background: var(--checkout-btn-success);
+  color: white;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 14.53px;
+  letter-spacing: 0.12px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.pay-button.disabled {
+  background: var(--checkout-btn-disabled);
+  cursor: not-allowed;
+}

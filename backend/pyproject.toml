@@ -1,0 +1,93 @@
+[tool.poetry]
+name = "tg-store-backend"
+version = "0.1.0"
+description = "Telegram WebApp store backend"
+authors = ["Fedor Chishchin <teochiman@gmail.com>"]
+license = "Proprietary"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.115.8"
+uvicorn = "^0.34.0"
+sqlalchemy = "^2.0.37"
+alembic = "^1.14.1"
+psycopg2-binary = "^2.9.10"
+python-dotenv = "^1.0.1"
+pydantic = "^2.10.6"
+pydantic-settings = "^2.7.1"
+redis = "^5.2.1"
+asyncpg = "^0.30.0"
+typer = "^0.15.1"
+aiogram = "^3.17.0"
+python-multipart = "^0.0.20"
+pyyaml = "^6.0.2"
+pytest = "^8.3.4"
+yookassa = "^3.5.0"
+httpx = "^0.28.1"
+pandas = "^2.2.3"
+openpyxl = "^3.1.5"
+geopy = "^2.4.1"
+shapely = "^2.1.0"
+apscheduler = "^3.11.0"
+logfire = {extras = ["fastapi", "sqlalchemy"], version = "^3.21.1"}
+sentry-sdk = "^2.33.0"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^25.1.0"
+isort = "^6.0.1"
+pytest = "^8.4.1"
+coverage = "^7.9.2"
+mypy = "^1.17.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+[tool.mypy]
+python_version = "3.11"
+disable_error_code = ["call-overload"] 
+# Основные настройки типизации
+disallow_untyped_defs = true  # Требовать аннотации для всех функций
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+strict_optional = true
+
+# Настройки для работы с внешними библиотеками
+ignore_missing_imports = true
+namespace_packages = true
+explicit_package_bases = true
+
+# Дополнительные строгие проверки
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true
+
+# Настройки вывода
+show_error_codes = true
+pretty = true
+
+# Исключения для конкретных модулей (если нужно)
+[[tool.mypy.overrides]]
+module = [
+    "tests.*",
+]
+disallow_untyped_defs = false  # Менее строгие требования для тестов

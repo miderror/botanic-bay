@@ -1,0 +1,140 @@
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - tg_store_network
+    volumes:
+      - redis_data:/data
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    ports:
+      - "8000:8000"
+    command: ["/docker-entrypoint.sh", "fastapi"]
+    environment:
+      - FASTAPI_ENV=production
+      - SERVICE_TYPE=fastapi
+      - PYTHONUNBUFFERED=1
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./backend:/backend
+      - media_data:/backend/media
+      - static_data:/backend/static
+      - logs_data:/backend/logs
+    env_file:
+      - backend/.env
+    networks:
+      - tg_store_network
+    restart: unless-stopped
+    user: app
+    # Примечание: В продакшне используется внешняя база данных
+    # Конфигурация подключения задается через переменные окружения в .env
+
+  nginx:
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/conf.d/prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - nginx_logs:/var/log/nginx
+      - media_data:/backend/media:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/lib/letsencrypt:/var/lib/letsencrypt:ro
+      - frontend_dist:/usr/share/nginx/html
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - tg_store_network
+    environment:
+      - NGINX_WORKER_PROCESSES=auto
+      - NGINX_WORKER_CONNECTIONS=1024
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/prod/Dockerfile
+    volumes:
+      - frontend_dist:/app/dist  # Сохраняем собранные файлы в volume
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=/api/v1
+    networks:
+      - tg_store_network
+
+  telegram_bot:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    command: ["/docker-entrypoint.sh", "telegram_bot"]
+    environment:
+      - FASTAPI_ENV=production
+      - SERVICE_TYPE=telegram_bot
+      - PYTHONUNBUFFERED=1
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0      
+    volumes:
+      - ./backend:/backend
+    env_file:
+      - backend/.env
+    networks:
+      - tg_store_network
+      - default  # Добавляем доступ к default сети Docker для выхода в интернет
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8  # Используем Google DNS
+      - 8.8.4.4
+    # Примечание: В продакшне используется внешняя база данных
+    # Конфигурация подключения задается через переменные окружения в .env
+
+networks:
+  tg_store_network:
+    name: tg_store_network
+    driver: bridge
+
+volumes:
+  redis_data:
+    name: tg_store_redis_data
+    driver: local
+  nginx_logs:
+    name: tg_store_nginx_logs
+  media_data:
+    name: tg_store_media_data
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/backend/media
+      o: bind
+  static_data:
+    name: tg_store_static_data
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/backend/static
+      o: bind
+  logs_data:
+    name: tg_store_logs_data
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/backend/logs
+      o: bind
+  frontend_dist:
+    name: tg_store_frontend_dist

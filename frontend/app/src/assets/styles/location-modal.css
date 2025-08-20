@@ -1,0 +1,47 @@
+:root {
+  --modal-location-btn-height: 45px;
+}
+
+.modal-location-name {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #252525;
+}
+
+.modal-location-info {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: #252525;
+}
+
+.icon-container {
+  display: inline-flex;
+  gap: 11px;
+}
+
+.modal-location-content {
+  width: 100%;
+  /* Высота минус пространство для кнопки внизу */
+  padding: 30px 40px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-location-info-container {
+  padding: 15px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-location-input-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+  align-items: start;
+  grid-auto-flow: row;
+}

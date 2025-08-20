@@ -1,0 +1,191 @@
+:root {
+  --nav-height: 81px;
+  /* Переменная для отступа от навигационного бара */
+  --nav-bottom-spacing: 16px;
+  --nav-background: #242424;
+  --nav-item-width: 86px;
+  --nav-text-size: 6px;
+  --nav-icon-size: 28px;
+  --nav-active-color: #ffb43d;
+  --nav-inactive-color: #ffffff;
+
+  /* Переменные для checkout режима */
+  --nav-checkout-height: 81px;
+  --nav-checkout-width: 375px;
+  --nav-checkout-bg: rgba(36, 36, 36, 0.95);
+  --nav-checkout-button-bg: #66ca1a;
+  --nav-checkout-button-disabled: #dad8d7;
+  --nav-checkout-button-width: 215px;
+  --nav-checkout-button-height: 41px;
+}
+
+.navigation-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100vw; /* Добавляем явную ширину */
+  height: var(--nav-height);
+  background: var(--nav-background);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 30px;
+  z-index: 100;
+  /* Добавляем для выравнивания по центру */
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.nav-item {
+  width: var(--nav-item-width);
+  padding: 24px 13px 21.75px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 3.33px;
+  text-decoration: none;
+  color: var(--nav-inactive-color);
+  background: transparent;
+}
+
+.nav-icon {
+  width: var(--nav-icon-size);
+  height: var(--nav-icon-size);
+}
+
+.nav-text {
+  width: 60px;
+  height: 6.91px;
+  text-align: center;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 6px;
+  font-weight: 700;
+  line-height: 7.26px;
+  letter-spacing: 0.06px;
+}
+
+.nav-item.active {
+  color: var(--nav-active-color);
+}
+
+.nav-item.active .nav-icon path {
+  fill: var(--nav-active-color);
+}
+
+/* Стили для счетчика корзины */
+.icon-container {
+  position: relative;
+  display: inline-flex;
+}
+
+.cart-counter {
+  position: absolute;
+  top: -12px;
+  right: -22px;
+  background: #66ca1a;
+  color: white;
+  min-width: 22px;
+  aspect-ratio: 1 / 1; /* сохраняет форму круга */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: 'Inter', sans-serif;
+  /*padding: 0 6px;*/
+  white-space: nowrap;
+}
+
+/* Стили для оформления заказа */
+.checkout-navigation {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: var(--nav-background);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  z-index: 100;
+}
+
+.pay-btn {
+  flex: 1;
+  margin: 0 16px;
+  padding: 12px;
+  border: none;
+  border-radius: 25px;
+  background: #66ca1a;
+  color: white;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.pay-btn.disabled {
+  background: #dad8d7;
+  cursor: not-allowed;
+}
+
+/* Стили для режима оформления заказа */
+/* Стили для режима оформления заказа */
+.navigation-bar--checkout {
+  /* width: var(--nav-checkout-width); */
+  height: var(--nav-checkout-height);
+  padding: 0 30px;
+  /* background: var(--nav-checkout-bg); */
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+}
+
+/* Кнопка оплаты - исправляем центрирование */
+.checkout-pay-button {
+  width: var(--nav-checkout-button-width);
+  height: var(--nav-checkout-button-height);
+  padding: 10px 30px;
+  background: var(--nav-checkout-button-bg);
+  border-radius: 100px;
+  border: none;
+  display: flex;
+  justify-content: center; /* Центрируем содержимое по горизонтали */
+  align-items: center; /* Центрируем содержимое по вертикали */
+  cursor: pointer;
+  overflow: hidden;
+}
+
+/* Состояние disabled */
+.checkout-pay-button.disabled {
+  background: var(--nav-checkout-button-disabled);
+  cursor: not-allowed;
+  justify-content: center; /* Оставляем центрирование даже в disabled состоянии */
+}
+
+/* Стили для текста - убираем лишние свойства выравнивания */
+.checkout-pay-text {
+  color: white;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 14.53px;
+  letter-spacing: 0.12px;
+  text-transform: uppercase;
+  white-space: nowrap; /* Предотвращаем перенос текста */
+}

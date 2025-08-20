@@ -1,0 +1,103 @@
+:root {
+  --business-modal-text: #252525;
+  --business-modal-button: #66ca1a;
+  --business-modal-button-height: 35px;
+  --business-modal-checkbox-background: #dad8d7;
+  --business-modal-checkbox-checked-background: #66ca1a;
+}
+
+.business-modal {
+  padding: 12px 37px;
+  /*display: flex;*/
+  /*flex-direction: column;*/
+  /*justify-content: space-between;*/
+  height: calc(100% - var(--nav-height));
+}
+
+.business-modal__text {
+  color: var(--business-modal-text);
+  font-size: 10px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+}
+
+.business-modal__button {
+  margin-top: 26px;
+  width: 323px;
+  bottom: calc(var(--nav-height) + 40px);
+  height: var(--business-modal-button-height);
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 30px;
+  background: var(--business-modal-button);
+  border: none;
+  border-radius: 100px;
+  color: white;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 14.53px;
+  letter-spacing: 0.12px;
+  text-transform: uppercase;
+}
+
+.business-modal__button:disabled {
+  background: #dad8d7;
+  cursor: not-allowed;
+}
+
+.business-modal__checkboxes {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 36px;
+}
+
+.business-modal__checkbox-container {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  color: var(--business-modal-text);
+  font-size: 10px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+}
+
+.business-modal__checkbox-container input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.business-modal__checkbox-mark {
+  height: 16px;
+  width: 16px;
+  background-color: var(--business-modal-checkbox-background);
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.business-modal__checkbox-mark::after {
+  content: '';
+  position: absolute;
+  display: none;
+  margin-left: 5px;
+  margin-top: 3px;
+  width: 6px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.business-modal__checkbox-container input:checked + .business-modal__checkbox-mark {
+  background-color: var(--business-modal-checkbox-checked-background);
+}
+
+.business-modal__checkbox-container input:checked + .business-modal__checkbox-mark::after {
+  display: block;
+}

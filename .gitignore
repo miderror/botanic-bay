@@ -1,0 +1,9 @@
+**/.idea
+**/*.env
+**/env
+**/logs/*
+**/node_modules
+**/credentials.json
+.vscode
+backend/media/
+__pycache__/

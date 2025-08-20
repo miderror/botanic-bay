@@ -1,0 +1,90 @@
+.delivery-section {
+  width: 100%;
+  height: var(--delivery-section-height);
+  padding: 23px 52px;
+  background: rgba(240.12, 240.12, 240.12, 0.4);
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 30px; /* Устанавливаем одинаковый отступ между всеми элементами */
+  margin: 0 auto var(--nav-bottom-spacing);
+}
+
+.address-block {
+  margin: 0;
+  min-height: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center; /* Меняем на center для вертикального выравнивания */
+  gap: 8px;
+}
+
+.address-text {
+  color: #787878;
+  font-size: 10px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 12.1px;
+  letter-spacing: 0.1px;
+  /* Убираем ограничения для текста */
+  max-width: none;
+  white-space: normal; /* Разрешаем перенос */
+  text-align: left; /* Выравниваем текст по левому краю */
+  word-wrap: break-word; /* Разрешаем перенос длинных слов */
+}
+
+.address-action {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.action-button {
+  margin: 0;
+  height: 35px;
+  padding: 10px 30px;
+  background: #252525;
+  border: none;
+  border-radius: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.action-button.disabled {
+  background: var(--checkout-btn-disabled);
+  cursor: not-allowed;
+}
+
+.action-button-text {
+  color: white;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 14.53px;
+  letter-spacing: 0.12px;
+  text-transform: uppercase;
+}
+
+.delivery-info {
+  color: var(--checkout-text-primary);
+  font-size: 12px;
+  font-family: 'Open Sans Hebrew', sans-serif;
+  font-weight: 700;
+  line-height: 12px;
+  margin-top: var(--checkout-section-gap);
+  margin-bottom: var(--checkout-section-gap);
+}
+
+.location-icon {
+  width: 18px;
+  height: 21px;
+  flex-shrink: 0;
+  flex-grow: 0;
+  margin-top: 2px; /* Небольшой отступ сверху для визуального выравнивания с текстом */
+}

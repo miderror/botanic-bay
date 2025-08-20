@@ -1,0 +1,194 @@
+/* src/assets/styles/address-modal.css */
+:root {
+  --address-modal-width: 375px;
+  --address-item-width: 100%; /* 306px */
+  --address-item-height: 81px;
+  --address-toggle-width: 98px;
+  --address-toggle-height: 32px;
+  --address-btn-height: 45px;
+}
+
+.address-modal-content {
+  width: 100%;
+  /* Высота минус пространство для кнопки внизу */
+  height: calc(100% - 81px);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.address-modal-content .delivery-toggle {
+  margin-bottom: 17px;
+}
+
+/* Контейнер списка адресов */
+.addresses-list {
+  width: 100%;
+  padding: 0 31px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+}
+
+/* Элемент адреса */
+.address-item {
+  width: var(--address-item-width);
+  height: var(--address-item-height);
+  background: rgba(240, 240, 240, 0.4);
+  backdrop-filter: blur(4px);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+}
+
+.address-item.first-item {
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+}
+
+.address-item.last-item {
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+}
+
+/* Радио-кнопка */
+.radio {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #dad8d7;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.address-item.active .radio {
+  border-color: #66ca1a;
+}
+
+.address-item.active .radio::after {
+  content: '';
+  width: 12px;
+  height: 12px;
+  background: #66ca1a;
+  border-radius: 50%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.address-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.address-info .name,
+.address-info .address {
+  color: #252525;
+  font-size: 10px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 12.1px;
+  letter-spacing: 0.1px;
+}
+
+.action-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.action-dots span {
+  width: 6px;
+  height: 6px;
+  background: #d9d9d9;
+  border-radius: 50%;
+}
+
+/* Переключатель типа доставки */
+.address-modal-content .delivery-toggle {
+  margin: 20px 0;
+  display: flex;
+  justify-content: center;
+  gap: var(--delivery-toggle-gap);
+  margin-bottom: 17px;
+}
+
+.toggle-btn {
+  width: var(--address-toggle-width);
+  height: var(--address-toggle-height);
+  padding: 6px 14px;
+  border: none;
+  background: #252525;
+  color: white;
+  font-size: 8px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 9.68px;
+  letter-spacing: 0.08px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.toggle-btn.left {
+  border-radius: 100px 0 0 100px;
+}
+
+.toggle-btn.right {
+  border-radius: 0 100px 100px 0;
+}
+
+.toggle-btn.active {
+  background: #ffb43d;
+}
+
+/* Кнопка добавления */
+.add-button {
+  width: 100%;
+  height: var(--address-btn-height);
+  padding: 10px 30px;
+  background: #252525;
+  border: none;
+  border-radius: 100px;
+  color: white;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 14.53px;
+  letter-spacing: 0.12px;
+  text-transform: uppercase;
+  margin: 20px 0 calc(var(--nav-checkout-height) + var(--nav-checkout-height) + 20px);
+}
+
+/* Кнопка сохранения */
+.save-button {
+  width: 228px;
+  height: var(--address-btn-height);
+  position: fixed;
+  bottom: calc(var(--nav-height) + 20px); /* Отступ от нижней навигации */
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 30px;
+  background: #66ca1a;
+  border: none;
+  border-radius: 100px;
+  color: white;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 14.53px;
+  letter-spacing: 0.12px;
+  text-transform: uppercase;
+}
+
+.save-button:disabled {
+  background: #dad8d7;
+  cursor: not-allowed;
+}

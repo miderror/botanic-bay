@@ -1,0 +1,229 @@
+/* src/assets/styles/payment.css */
+:root {
+  /* Цвета для страницы платежа */
+  --payment-text-primary: #252525;
+  --payment-text-secondary: #787878;
+  --payment-success: #66ca1a;
+  --payment-error: #ff5b5b;
+  --payment-bg: white;
+  --payment-container-bg: rgba(240.12, 240.12, 240.12, 0.4);
+
+  /* Размеры */
+  --payment-container-width: 306px;
+  --payment-button-height: 41px;
+  --payment-icon-size: 60px;
+}
+
+/* Контейнер для страницы результата платежа */
+.payment-result-view {
+  width: 100%;
+  min-height: calc(100vh - var(--nav-height));
+  background: var(--payment-bg);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 24px 16px;
+  padding-bottom: calc(var(--nav-height) + 16px);
+}
+
+/* Добавляем фоновый паттерн (такой же как в каталоге и корзине) */
+.payment-result-view::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--pattern-image) repeat;
+  background-size: var(--pattern-size);
+  opacity: var(--pattern-opacity);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Контейнер для содержимого */
+.payment-result-container {
+  width: var(--payment-container-width);
+  padding: 32px 24px;
+  background: var(--payment-container-bg);
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* Стили для состояний */
+.payment-success,
+.payment-failed,
+.payment-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Иконки статуса */
+.success-icon,
+.error-icon {
+  width: var(--payment-icon-size);
+  height: var(--payment-icon-size);
+}
+
+.success-icon path {
+  fill: var(--payment-success);
+}
+
+.error-icon path {
+  fill: var(--payment-error);
+}
+
+/* Заголовок результата платежа */
+.payment-title {
+  color: var(--payment-text-primary);
+  font-size: 18px;
+  font-family: 'Open Sans Hebrew', sans-serif;
+  font-weight: 700;
+  line-height: 18px;
+  margin: 0;
+}
+
+/* Сообщение с деталями */
+.payment-message {
+  color: var(--payment-text-secondary);
+  font-size: 14px;
+  font-family: 'Pontano Sans', sans-serif;
+  font-weight: 400;
+  line-height: 16px;
+  margin: 0;
+}
+
+/* Кнопки действий */
+.payment-button {
+  width: 100%;
+  height: var(--payment-button-height);
+  padding: 10px 30px;
+  border-radius: 100px;
+  border: none;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 14.53px;
+  letter-spacing: 0.12px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.success-button {
+  background: var(--payment-success);
+  color: white;
+}
+
+.retry-button {
+  background: var(--payment-text-primary);
+  color: white;
+}
+
+.secondary-button {
+  background: var(--payment-container-bg);
+  border: 1px solid var(--payment-text-secondary);
+  color: var(--payment-text-primary);
+}
+
+/* Стили для виджета оплаты */
+.payment-widget-container {
+  width: 100%;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+/* Стили для результата оплаты */
+.payment-result-view {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background: white;
+}
+
+.payment-result-container {
+  width: 100%;
+  max-width: 375px;
+  background: rgba(240, 240, 240, 0.4);
+  border-radius: 20px;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.payment-title {
+  font-size: 18px;
+  font-family: 'Open Sans Hebrew', sans-serif;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #252525;
+}
+
+.payment-message {
+  font-size: 14px;
+  font-family: 'Pontano Sans', sans-serif;
+  margin-bottom: 24px;
+  color: #787878;
+}
+
+.payment-button {
+  padding: 10px 30px;
+  border-radius: 100px;
+  border: none;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.12px;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin: 8px;
+}
+
+.success-button {
+  background: #66ca1a;
+  color: white;
+}
+
+.retry-button {
+  background: #252525;
+  color: white;
+}
+
+.secondary-button {
+  background: #f0f0f0;
+  color: #252525;
+}
+
+.success-icon,
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.success-icon {
+  color: #66ca1a;
+}
+
+.error-icon {
+  color: #ff5b5b;
+}

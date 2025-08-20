@@ -1,0 +1,523 @@
+/* src/assets/styles/profile.css */
+
+:root {
+  /* Переменные для профиля */
+  --profile-width: 400px;
+  --profile-padding: 20px;
+  --profile-header-spacing: 32px;
+  --profile-avatar-size: 80px;
+  --profile-avatar-size-mobile: 60px;
+
+  /* Цвета */
+  --profile-text-primary: #333;
+  --profile-text-secondary: #666;
+  --profile-avatar-bg: #f4b942;
+}
+
+/* Обертка для фона на всю ширину */
+.profile-wrapper {
+  width: 100%;
+  min-height: 100vh;
+  height: 100vh; /* Добавляем фиксированную высоту */
+  background: white;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  overflow-y: auto; /* Добавляем прокрутку */
+  -webkit-overflow-scrolling: touch; /* Для плавной прокрутки на iOS */
+
+  /* Скрываем скроллбар для WebKit браузеров */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Скрываем скроллбар для Firefox */
+  scrollbar-width: none;
+
+  /* Скрываем скроллбар для IE/Edge */
+  -ms-overflow-style: none;
+}
+
+/* Фоновый паттерн на всю ширину */
+.profile-wrapper::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--pattern-image) repeat;
+  background-size: var(--pattern-size);
+  opacity: var(--pattern-opacity);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Контейнер профиля с фиксированной шириной */
+.profile {
+  width: var(--profile-width);
+  height: calc(100vh - var(--nav-height));
+  padding: var(--profile-padding);
+  position: relative;
+  z-index: 1;
+  padding-bottom: calc(
+    var(--nav-height) + var(--profile-padding)
+  ); /* Добавляем отступ для навигационной панели */
+  min-height: 100vh; /* Растягиваем на всю высоту */
+}
+
+/* Шапка профиля */
+.profile-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--profile-header-spacing);
+  padding: var(--profile-padding);
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Аватар пользователя */
+.user-avatar {
+  width: var(--profile-avatar-size);
+  height: var(--profile-avatar-size);
+  margin-right: var(--profile-padding);
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--profile-avatar-bg);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+}
+
+/* Информация о пользователе */
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--profile-text-primary);
+}
+
+.user-username {
+  font-size: 16px;
+  color: var(--profile-text-secondary);
+  margin: 4px 0 0;
+}
+
+/* Анимации переходов */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Медиа-запросы */
+@media (max-width: 768px) {
+  .profile {
+    padding: 16px;
+  }
+
+  .profile-header {
+    padding: 16px;
+  }
+
+  .user-avatar {
+    width: var(--profile-avatar-size-mobile);
+    height: var(--profile-avatar-size-mobile);
+  }
+
+  .user-name {
+    font-size: 20px;
+  }
+
+  .user-username {
+    font-size: 14px;
+  }
+}
+
+/* Основные стили для компонентов профиля */
+.account-data,
+.business-section {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 20px;
+  font-family: var(--font-open-sans);
+  color: var(--catalog-text-primary);
+}
+
+.business-section {
+  padding-bottom: 20px;
+}
+
+.data-subsection {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.account-info-form {
+  width: 100%;
+  margin-top: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.toast {
+  position: fixed;
+  bottom: unset;
+  top: 5px;
+  right: 50%;
+}
+
+.account-data {
+  padding-bottom: 100px;
+}
+
+.account-icon {
+  color: #d0d0d0;
+  width: 64px;
+  height: 64px;
+}
+
+/* Заголовки секций */
+.section-title {
+  font-family: var(--font-open-sans-hebrew);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--catalog-text-primary);
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+/* Секции с данными */
+.data-section {
+  background-color: rgba(240, 240, 240, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 12px;
+  padding: 19px 32px 32px;
+  margin-bottom: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.action-dots {
+  position: absolute;
+  right: 32px;
+  top: 22px;
+  display: flex;
+  gap: 4px;
+}
+
+.action-dots span {
+  width: 6px;
+  height: 6px;
+  background: #d9d9d9;
+  border-radius: 50%;
+}
+
+/* Подзаголовки в секциях */
+.subsection-title {
+  font-family: var(--font-inter);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--catalog-text-primary);
+  text-align: left;
+}
+
+/* Строки с данными */
+.data-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.data-row:last-child {
+  border-bottom: none;
+}
+
+/* Метки и значения */
+.data-label {
+  color: var(--catalog-text-secondary);
+  font-family: var(--font-pontano);
+  font-size: 12px;
+}
+
+.data-value {
+  font-weight: 600;
+  font-family: var(--font-open-sans);
+  font-size: 12px;
+}
+
+/* Список ролей */
+.roles-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Бейджи ролей */
+.role-badge {
+  padding: 4px 12px;
+  background: var(--catalog-category-active);
+  color: white;
+  border-radius: 20px;
+  font-size: 10px;
+  font-family: var(--font-inter);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Секция бизнеса */
+.business-content {
+  background: white;
+  border-radius: 12px;
+  padding: 40px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  text-align: center;
+}
+
+.business-message {
+  font-family: var(--font-pontano);
+  color: var(--catalog-text-secondary);
+  font-size: 14px;
+}
+
+.icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  & span {
+    font-weight: 700;
+  }
+}
+
+.discount {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 13px;
+}
+
+.discount__prev span,
+.discount__next span {
+  color: #252525;
+  font-family: 'Open Sans Hebrew', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  text-align: center;
+}
+
+.discount__prev,
+.discount__next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.discount__prev {
+  width: 37px;
+  height: 37px;
+  border-radius: 50%;
+  background-color: #dad8d7;
+  outline: solid 3px white;
+}
+
+.discount__prev.bronze {
+  background-color: #f8df58;
+}
+
+.discount__next {
+  width: 47px;
+  height: 47px;
+
+  background-image: url('../images/discount/bronze.svg');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.discount__next.silver {
+  background-image: url('../images/discount/silver.svg');
+}
+
+.discount__next.gold {
+  background-image: url('../images/discount/gold.svg');
+}
+
+.discount__progress-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.discount__progress-bar {
+  width: 100%;
+  height: 20px;
+}
+
+.progress {
+  position: relative;
+  width: 95%;
+  height: 95%;
+  background-color: white;
+  border-radius: 100px;
+  overflow: hidden;
+  outline: solid 2px white;
+}
+
+.progress__fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.progress.none .progress__fill {
+  background-color: #dad8d7;
+}
+
+.progress.none {
+  outline: none;
+}
+
+.progress.bronze .progress__fill {
+  background-color: #f8df58;
+}
+
+.progress.silver .progress__fill {
+  background-color: #ebb9ff;
+}
+
+.progress.gold .progress__fill {
+  background-color: #bfdbff;
+}
+
+.progress__text {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.discount__data {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 140px;
+
+  p {
+    color: #787878;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 8px;
+    text-align: center;
+  }
+
+  span {
+    color: #252525;
+    font-family: 'Open Sans Hebrew', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    text-align: center;
+  }
+}
+
+.input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.account-input,
+.account-input.error {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--modal-input-height);
+  padding: 18px 40px 18px 26px; /* Увеличиваем правый padding */
+  background: #f0f0f0;
+  box-shadow: 0px 1px 1px #c5c4c4 inset;
+  border-radius: 100px;
+  border: 2px solid transparent;
+  color: var(--modal-input-text-color);
+  font-size: 10px;
+  font-family: var(--font-open-sans-hebrew);
+  font-weight: 700;
+  line-height: 10px;
+  min-width: 0;
+  outline: none;
+}
+
+.account-input:focus,
+.account-input.error:focus {
+  outline: none;
+  border: 2px solid transparent; /* Сохраняем прозрачную границу */
+}
+
+.save-profile-button {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #66ca1a;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-inter);
+  cursor: pointer;
+}
+
+.save-profile-button:disabled {
+  background-color: #dad8d7;
+  cursor: not-allowed;
+}
+
+.account-input.error {
+  border-color: var(--modal-input-error);
+  box-shadow: none;
+}
+
+.account-input.saved {
+  background-color: white;
+  border: none;
+  box-shadow: none;
+}

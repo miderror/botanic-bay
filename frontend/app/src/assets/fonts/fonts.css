@@ -1,0 +1,156 @@
+/* Open Sans - Variable Font */
+@font-face {
+  font-family: 'Open Sans';
+  src: url('@/assets/fonts/OpenSans/OpenSans-VariableFont_wdth,wght.ttf')
+    format('truetype-variations');
+  font-weight: 300 800;
+  font-stretch: 75% 100%;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Fallback для Open Sans */
+@supports not (font-variation-settings: normal) {
+  @font-face {
+    font-family: 'Open Sans';
+    src: url('@/assets/fonts/OpenSans/static/OpenSans-Light.ttf') format('truetype');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Open Sans';
+    src: url('@/assets/fonts/OpenSans/static/OpenSans-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Open Sans';
+    src: url('@/assets/fonts/OpenSans/static/OpenSans-Medium.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Open Sans';
+    src: url('@/assets/fonts/OpenSans/static/OpenSans-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Open Sans';
+    src: url('@/assets/fonts/OpenSans/static/OpenSans-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Open Sans';
+    src: url('@/assets/fonts/OpenSans/static/OpenSans-ExtraBold.ttf') format('truetype');
+    font-weight: 800;
+    font-style: normal;
+    font-display: swap;
+  }
+}
+
+/* Open Sans Hebrew */
+@font-face {
+  font-family: 'Open Sans Hebrew';
+  src: url('@/assets/fonts/OpenSansHebrew/static/OpenSansHebrew-regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Open Sans Hebrew';
+  src: url('@/assets/fonts/OpenSansHebrew/static/OpenSansHebrew-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Inter - Variable Font */
+@font-face {
+  font-family: 'Inter';
+  src: url('@/assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf') format('truetype-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Fallback для Inter */
+@supports not (font-variation-settings: normal) {
+  @font-face {
+    font-family: 'Inter';
+    src: url('@/assets/fonts/Inter/static/Inter_18pt-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Inter';
+    src: url('@/assets/fonts/Inter/static/Inter_18pt-Medium.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: 'Inter';
+    src: url('@/assets/fonts/Inter/static/Inter_18pt-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+}
+
+/* Pontano Sans */
+@font-face {
+  font-family: 'Pontano Sans';
+  src: url('@/assets/fonts/PontanoSans/static/PontanoSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Archivo */
+@font-face {
+  font-family: 'Archivo';
+  src: url('@/assets/fonts/Archivo/static/Archivo-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Archivo';
+  src: url('@/assets/fonts/Archivo/static/Archivo-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Arimo */
+@font-face {
+  font-family: 'Arimo';
+  src: url('@/assets/fonts/Arimo/static/Arimo-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Добавляем утилитарный класс для проверки загрузки шрифтов */
+.fonts-loaded {
+  /* Этот класс будет добавляться к body после загрузки шрифтов */
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}

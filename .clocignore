@@ -1,0 +1,14 @@
+frontend/app/dist
+frontend/app/node_modules
+frontend/app/coverage
+frontend/app/package.json
+frontend/app/package-lock.json
+data
+scratch
+backend/.venv
+backend/logs
+backend/htmlcov
+backend/poetry.lock
+backend/.venv
+backend/.ruff_cache
+backend/.mypy_cache

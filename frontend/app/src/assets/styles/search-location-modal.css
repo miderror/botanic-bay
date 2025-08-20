@@ -1,0 +1,21 @@
+:root {
+  --modal-search-location-btn-height: 45px;
+}
+
+.icon-container {
+  display: inline-flex;
+  gap: 11px;
+}
+
+.modal-search-location-content {
+  width: 100%;
+  /* Высота минус пространство для кнопки внизу */
+  padding: 30px 40px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-search-location-button-container {
+  margin-top: 12px;
+}

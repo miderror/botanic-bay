@@ -1,0 +1,228 @@
+/* src/assets/styles/modal.css */
+:root {
+  --modal-overlay-bg: rgba(0, 0, 0, 0.3);
+  --modal-bg: white;
+  --modal-title-color: #252525;
+  --modal-radius: 9px;
+  --modal-header-height: 50px;
+  --modal-close-size: 36px;
+
+  --modal-width: 375px;
+  --modal-height: calc(100vh - var(--nav-height)); /* Вычитаем высоту навигации */
+  --modal-minimized-height: 223px;
+  --modal-top-offset: 0px;
+
+  --modal-input-width: 100%;
+  --modal-input-height: 46px;
+  --modal-input-text-color: #252525;
+  --modal-input-error: #ff5b5b;
+
+  --modal-button-height: 45px;
+}
+
+/* Оверлей модального окна */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  z-index: 1000;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-overlay--minimized {
+  pointer-events: none; /* клики проходят сквозь оверлей */
+}
+
+.modal-overlay-bg {
+  background: var(--modal-overlay-bg);
+}
+
+/* Контейнер модального окна */
+.modal-content {
+  position: relative;
+  background: var(--modal-bg);
+  width: var(--modal-width);
+  height: calc(var(--modal-height) - var(--modal-top-offset)); /* Используем новую переменную */
+  margin-top: var(--modal-top-offset);
+  border-radius: var(--modal-radius);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* .modal-content {
+  position: relative;
+  background: var(--modal-bg);
+  width: var(--checkout-modal-width);
+  height: var(--checkout-modal-height);
+  margin-top: var(--checkout-modal-offset);
+  border-radius: var(--modal-radius);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+} */
+
+.modal-content--fullscreen {
+  max-width: none;
+  width: 100vw;
+  min-height: 100vh;
+  margin-top: 0;
+  border-radius: 0;
+}
+
+.modal-content--minimized {
+  pointer-events: auto; /* клики снова доступны для контента */
+  z-index: 1001; /* выше обычного overlay */
+  position: relative;
+  max-width: none;
+  width: 100vw;
+  height: auto;
+  padding-bottom: var(--safe-keyboard-padding);
+  margin-top: auto;
+  border-radius: 0;
+}
+
+/* Заголовок */
+.modal-header {
+  flex-shrink: 0;
+  height: var(--modal-header-height);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--modal-bg);
+  z-index: 10;
+  padding: 0 20px;
+  /* Убираем border-bottom если он есть */
+  border-bottom: none;
+}
+
+.modal-title {
+  color: var(--modal-title-color);
+  font-size: 14px;
+  font-family: 'Open Sans Hebrew', sans-serif;
+  font-weight: 700;
+  line-height: 14px;
+  margin: 0;
+  text-align: center;
+  /* Добавляем запрет переноса текста */
+  white-space: nowrap;
+  /* Добавляем для поддержки переполнения */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modal-input,
+.modal-input.error {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--modal-input-height);
+  padding: 18px 40px 18px 26px; /* Увеличиваем правый padding */
+  background: #f0f0f0;
+  box-shadow: 0px 1px 1px #c5c4c4 inset;
+  border-radius: 100px;
+  border: 2px solid transparent;
+  color: var(--modal-input-text-color);
+  font-size: 10px;
+  font-family: var(--font-open-sans-hebrew);
+  font-weight: 700;
+  line-height: 10px;
+  min-width: 0;
+}
+
+.modal-input:focus {
+  outline: none;
+}
+
+.modal-input.error {
+  border-color: var(--modal-input-error);
+  box-shadow: none;
+}
+
+.modal-input.error-border {
+  border-color: var(--modal-input-error);
+  box-shadow: none;
+}
+
+.modal-button {
+  width: 100%;
+  height: var(--modal-button-height);
+  padding: 10px 30px;
+  background: #66ca1a;
+  border: none;
+  border-radius: 100px;
+  color: white;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  line-height: 14.53px;
+  letter-spacing: 0.12px;
+  text-transform: uppercase;
+}
+
+.modal-button:disabled {
+  background: #dad8d7;
+  cursor: not-allowed;
+}
+
+/* Кнопка закрытия */
+.modal-close {
+  position: absolute;
+  top: 7px; /* (50px - 36px) / 2 = 7px для центрирования по вертикали */
+  right: 7px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Добавляем состояние при наведении */
+.modal-close:hover {
+  opacity: 0.8;
+}
+
+/* Добавляем состояние при нажатии */
+.modal-close:active {
+  transform: scale(0.95);
+}
+
+/* Контейнер контента */
+.modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  /* Скрываем скроллбар для WebKit (Chrome, Safari, новые версии Edge) */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Скрываем скроллбар для Firefox */
+  scrollbar-width: none;
+
+  /* Скрываем скроллбар для IE/Edge */
+  -ms-overflow-style: none;
+}
+
+.modal-body.has-title {
+  height: calc(100% - var(--modal-header-height));
+}
+
+/* Анимации */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}

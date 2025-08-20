@@ -1,0 +1,147 @@
+.business-item-modal {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - var(--nav-height));
+
+  .business-item-modal__user-card {
+    padding: 12px 17px;
+  }
+
+  .business-user-info__icon {
+    position: relative;
+    transform: none;
+    left: 0;
+    top: 0;
+  }
+
+  .business-user-info__data {
+    grid-template-columns: 1fr auto;
+  }
+
+  .business-user-info__data p {
+    font-size: 10px;
+  }
+
+  .business-invited {
+    position: fixed;
+    bottom: calc(var(--nav-height) + 1px);
+    left: 1px;
+    width: calc(100% - 2px);
+    padding-top: 15px;
+    padding-bottom: 15px;
+  }
+}
+
+.business-item-modal_all {
+  .business-invited {
+    border-radius: 0;
+
+    p {
+      font-size: 12px;
+    }
+
+    span {
+      font-size: 12px;
+    }
+  }
+}
+
+.business-invited-users {
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /*overflow-x: scroll;*/
+  padding-bottom: 60px;
+}
+
+.business-invited-users__item-wrapper {
+  padding-bottom: 10px;
+}
+
+.business-invited-users__item {
+  background-color: #f0f0f0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 0.5fr; /* 1fr для левого блока, 80px — фиксированная ширина правой колонки */
+  align-items: center;
+  padding: 15px 12px;
+  cursor: pointer;
+}
+
+.business-invited-users__item-bonus-block {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.business-invited-users__item-partners-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.business-invite-users__item-bonus-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.business-invited-users__item-partners {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+
+  p {
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+  }
+}
+
+.business-invited-users__item-user-icon {
+  width: 10px;
+  height: 10px;
+}
+
+.business-invited-users__item-bonus {
+  border-radius: 100px;
+  padding: 4px 10px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.business-invited-users__item-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.business-invited-users__item-data-block {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.business-invited-users__item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+
+  p,
+  span {
+    font-family: 'Inter', sans-serif;
+  }
+
+  p {
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  span {
+    font-size: 8px;
+  }
+}
