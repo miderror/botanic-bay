@@ -118,6 +118,9 @@ class Settings(BaseSettings):
     YOOKASSA_WEBHOOK_URL_DEV: str
     YOOKASSA_WEBHOOK_URL_PROD: str
 
+    ADMIN_USER: str = "admin"
+    ADMIN_PASSWORD_HASH: str
+
     # CDEK API settings
     CDEK_BASE_URL: str = "https://api.cdek.ru"
     CDEK_TEST_BASE_URL: str = "https://api.edu.cdek.ru"

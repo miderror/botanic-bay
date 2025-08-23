@@ -11,9 +11,11 @@ from fastapi.responses import JSONResponse
 from starlette.datastructures import State
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.admin import init_admin
 from app.api.middleware import log_request_middleware
 from app.api.tags import Tags
 from app.api.v1.router import api_router
+from app.core.db import engine
 from app.core.logger import logger
 from app.core.settings import settings
 from app.services.cdek.client import get_cdek_async_client
@@ -106,6 +108,8 @@ app.add_middleware(
 
 # Добавляем middleware для логирования
 app.middleware("http")(log_request_middleware)
+
+init_admin(app, engine)
 
 # Подключаем API роутер
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
