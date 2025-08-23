@@ -17,6 +17,7 @@ export function useCheckout() {
   const cartStore = useCartStore();
   const { showNotification } = useNotification();
   const { initiateWidgetPayment } = usePayment();
+  const { promoCode } = storeToRefs(checkoutStore);
 
   // Получаем реактивные ссылки на состояния из сторов
   const {
@@ -104,6 +105,7 @@ export function useCheckout() {
       payment_method: selectedPaymentMethod.value,
       address_id: getDeliveryData.value.address_id || undefined,
       delivery_point_id: getDeliveryData.value.delivery_point_id || undefined,
+      promo_code: promoCode.value || undefined,
     };
 
     logger.debug("Checkout data prepared", { orderData });

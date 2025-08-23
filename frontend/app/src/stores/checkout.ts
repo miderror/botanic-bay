@@ -21,6 +21,13 @@ export const useCheckoutStore = defineStore("checkout", () => {
   const paymentMethod = ref<PaymentMethod | null>(null);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+  const promoCode = ref<string | null>(null);
+  const discountPercent = ref(0);
+
+  const setPromoCode = (code: string | null, discount: number) => {
+      promoCode.value = code;
+      discountPercent.value = discount;
+  };
 
   // Вычисляемые свойства
   const canProceed = computed(() => {
@@ -189,6 +196,8 @@ export const useCheckoutStore = defineStore("checkout", () => {
     selectedUserAddress.value = null;
     paymentMethod.value = null;
     error.value = null;
+    promoCode.value = null;
+    discountPercent.value = 0;
 
     // Очищаем localStorage
     saveToLocalStorage(STORAGE_KEY_DELIVERY_METHOD, null);
@@ -223,5 +232,8 @@ export const useCheckoutStore = defineStore("checkout", () => {
     createOrder,
     reset,
     loadSavedState,
+    promoCode,
+    discountPercent,
+    setPromoCode,
   };
 });

@@ -1,9 +1,6 @@
+from decimal import Decimal
 from typing import Any, List, Optional, Tuple
 from uuid import UUID
-
-from fastapi import HTTPException, status
-from pydantic import TypeAdapter, ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import UserAddressNotFoundError, UserAddressUpdateError
 from app.core.logger import logger
@@ -26,6 +23,10 @@ from app.schemas.order import (
 from app.schemas.user import SUserMonthlyOrders
 from app.services.cdek.cdek_service import CDEKService
 from app.services.order.discount_service import DiscountService
+from app.services.promo_code_service import PromoCodeService
+from fastapi import HTTPException, status
+from pydantic import TypeAdapter, ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class OrderService:
@@ -138,6 +139,28 @@ class OrderService:
             )
 
         try:
+            promo_code_service = PromoCodeService(self.session)
+            promo_discount = Decimal("0")
+            applied_promo_code = None
+
+            if data.promo_code:
+                try:
+                    promo_code_obj = await promo_code_service.validate_promo_code(
+                        data.promo_code
+                    )
+                    subtotal_before_discounts = sum(
+                        item.subtotal for item in cart.items
+                    )
+                    promo_discount = (
+                        subtotal_before_discounts * promo_code_obj.discount_percent
+                    ) / Decimal("100")
+                    applied_promo_code = promo_code_obj
+                except HTTPException as e:
+                    logger.warning(
+                        f"Invalid promo code '{data.promo_code}' provided during order creation: {e.detail}",
+                        extra={"user_id": str(user_id)},
+                    )
+
             delivery_info = await self._get_delivery_info(
                 delivery_point_id=data.delivery_point_id,
                 address_id=data.address_id,
@@ -150,11 +173,19 @@ class OrderService:
             # Создаем заказ
             order = await self.order_crud.create_from_cart(
                 cart=cart,
+                promo_discount=promo_discount,
                 **delivery_info,
                 discount_multiplier=discount_multiplier,
                 delivery_method=data.delivery_method,
                 payment_method=data.payment_method,
             )
+
+            if applied_promo_code:
+                from app.crud.promo_code import PromoCodeCRUD
+                promo_crud = PromoCodeCRUD(self.session)
+                await promo_crud.decrement_uses(applied_promo_code.id)
+                order.promo_code = applied_promo_code.code
+                await self.session.commit()
 
             logger.info(
                 "Created new order",

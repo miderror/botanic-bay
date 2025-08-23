@@ -11,6 +11,7 @@ from sqlalchemy.orm import relationship
 from app.core.logger import logger
 from app.models.base import Base
 from app.models.order_status import OrderStatus
+from app.models.cart import Cart
 from app.schemas.cdek.base import RequestLocation
 
 
@@ -91,6 +92,8 @@ class Order(Base):
 
     # Стоимость
     subtotal = Column(Numeric(10, 2), nullable=False)  # Стоимость товаров
+    discount_amount = Column(Numeric(10, 2), default=0)
+    promo_code = Column(String(50), nullable=True)
     total = Column(Numeric(10, 2), nullable=False)  # Полная стоимость с доставкой
 
     # Дата планируемой отгрузки
@@ -106,7 +109,7 @@ class Order(Base):
         "Payment", back_populates="order", cascade="all, delete-orphan"
     )
 
-    def calculate_totals(self, discount_multiplier: Decimal) -> None:
+    def calculate_totals(self, discount_multiplier: Decimal, promo_discount: Decimal = Decimal("0")) -> None:
         """
         Пересчет общей стоимости заказа
         Учитывает стоимость товаров и доставки
@@ -135,7 +138,8 @@ class Order(Base):
 
         # Считаем общую сумму с доставкой
         self.subtotal *= float(discount_multiplier)
-        self.total = float(self.subtotal) + float(self.delivery_cost)
+        self.discount_amount = float(promo_discount)
+        self.total = float(self.subtotal or 0) - float(self.discount_amount or 0) + float(self.delivery_cost or 0)
 
         # Подробное логирование
         logger.info(
@@ -153,12 +157,13 @@ class Order(Base):
     @classmethod
     def from_cart(
         cls,
-        cart: "Cart",
+        cart: Cart,
         delivery_method: str,
         delivery_cost: float,
         delivery_tariff_code: int,
         *,
         discount_multiplier: Decimal = Decimal("1"),
+        promo_discount: Decimal = Decimal("0"),
         delivery_point: str = None,
         delivery_to_location: RequestLocation = None,
         delivery_comment: Optional[str] = None,
@@ -239,7 +244,7 @@ class Order(Base):
             order.items.append(order_item)
 
         # Рассчитываем итоговую стоимость
-        order.calculate_totals(discount_multiplier)
+        order.calculate_totals(discount_multiplier, promo_discount)
 
         logger.info(
             "Completed order creation",

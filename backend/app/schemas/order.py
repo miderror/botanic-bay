@@ -53,6 +53,7 @@ class SCreateOrder(BaseModel):
     delivery_point_id: Optional[UUID] = None
     delivery_method: str
     payment_method: str
+    promo_code: Optional[str] = None
 
 
 class SOrder(BaseModel):
@@ -66,6 +67,8 @@ class SOrder(BaseModel):
     delivery_method: str
     delivery_cost: Decimal
     subtotal: Decimal
+    discount_amount: Optional[float] = 0.0
+    promo_code: Optional[str] = None 
     total: Decimal
     planned_shipping_date: Optional[datetime]
     payment_method: Optional[str]

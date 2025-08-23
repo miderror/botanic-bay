@@ -54,7 +54,7 @@ class Referral(Base):
     referrer = relationship(
         "Referral",
         remote_side=[id],
-        backref="referrals",
+        back_populates="children",
         lazy="selectin",
     )
 

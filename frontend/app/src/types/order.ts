@@ -38,6 +38,7 @@ export interface ICreateOrder {
   address_id?: UUID;
   delivery_method: DeliveryMethod;
   payment_method: PaymentMethod;
+  promo_code?: string | null;
 }
 
 /**

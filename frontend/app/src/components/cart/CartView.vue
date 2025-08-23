@@ -18,6 +18,8 @@ import { formatPrice } from "@/utils/formatters";
 import { logger } from "@/utils/logger";
 import { storeToRefs } from "pinia";
 import { computed, onMounted, onUnmounted, ref } from "vue";
+import { useCheckoutStore } from "@/stores/checkout";
+import { promoCodeService } from "@/services/promoCodeService";
 
 // Инициализация состояния корзины
 const { isInitialized } = useCartInitialization();
@@ -33,9 +35,12 @@ const { remainingTime } = storeToRefs(cartStore);
 // Получаем методы работы с корзиной
 const { cart, isLoading, error, initCart, removeFromCart, formatRemainingTime, isItemLoading } = useCart();
 
+const checkoutStore = useCheckoutStore();
+
 // UI состояние
-const promoCode = ref("");
+const promoCodeInput = ref("");
 const promoError = ref("");
+const isApplyingPromo = ref(false);
 const showCheckoutModal = ref(false);
 
 // Форматированное время для отображения
@@ -84,14 +89,45 @@ const openCheckout = () => {
   }
 };
 
-// Применение промокода
-const applyPromoCode = () => {
-  promoError.value = "Неверный промокод!";
-  promoCode.value = "";
 
-  logger.info("Attempt to apply promo code", {
-    promoCode: promoCode.value,
-  });
+// Вычисляемое свойство для итоговой суммы с учетом скидки
+const finalTotal = computed(() => {
+  const total = cart.value?.total || 0;
+  if (checkoutStore.discountPercent > 0) {
+    const discount = (total * checkoutStore.discountPercent) / 100;
+    return total - discount;
+  }
+  return total;
+});
+
+// Применение промокода
+const applyPromoCode = async () => {
+  if (!promoCodeInput.value.trim()) return;
+  
+  isApplyingPromo.value = true;
+  promoError.value = "";
+
+  try {
+    const response = await promoCodeService.applyPromoCode(promoCodeInput.value);
+    if (response.is_valid) {
+      checkoutStore.setPromoCode(response.code, response.discount_percent);
+      showNotification("Промокод применен!", "success");
+      promoCodeInput.value = "";
+    } else {
+      promoError.value = response.message;
+      checkoutStore.setPromoCode(null, 0); // Сбрасываем промокод в сторе
+    }
+  } catch (err) {
+    promoError.value = "Ошибка при проверке промокода.";
+    checkoutStore.setPromoCode(null, 0);
+  } finally {
+    isApplyingPromo.value = false;
+  }
+};
+
+const removePromoCode = () => {
+  checkoutStore.setPromoCode(null, 0);
+  showNotification("Промокод удален", "info");
 };
 
 // Хуки жизненного цикла
@@ -174,24 +210,29 @@ onUnmounted(() => {
         </div>
 
         <!-- Ввод промокода -->
-        <div
-          class="promo-code"
-          :class="{ error: promoError }"
-        >
+        <div class="promo-code" :class="{ error: promoError }">
           <input
-            v-model="promoCode"
+            v-model="promoCodeInput"
             type="text"
-            :placeholder="!promoError ? 'Введите промокод' : promoError"
+            :placeholder="promoError ? promoError : 'Введите промокод'"
             @input="promoError = ''"
             class="promo-input"
+            :disabled="!!checkoutStore.promoCode"
           />
           <button
             @click="applyPromoCode"
             class="promo-btn"
-            :class="{ active: promoCode.length > 0 }"
+            :class="{ active: promoCodeInput.length > 0 && !checkoutStore.promoCode }"
+            :disabled="isApplyingPromo || !!checkoutStore.promoCode"
           >
-            ДОБАВИТЬ
+            {{ isApplyingPromo ? '...' : 'ДОБАВИТЬ' }}
           </button>
+        </div>
+
+        <!-- Отображение примененного промокода -->
+        <div v-if="checkoutStore.promoCode" class="applied-promo">
+          <span>Промокод "{{ checkoutStore.promoCode }}" применен. Скидка {{ checkoutStore.discountPercent }}%</span>
+          <button @click="removePromoCode" class="remove-promo-btn">✕</button>
         </div>
 
         <!-- Список товаров в корзине -->
@@ -246,7 +287,7 @@ onUnmounted(() => {
           class="checkout-btn"
           :disabled="!cart?.items?.length || !remainingTime"
         >
-          ОПЛАТИТЬ {{ formatPrice(cart?.total || 0) }}
+          ОПЛАТИТЬ {{ formatPrice(finalTotal) }}
         </button>
       </div>
 

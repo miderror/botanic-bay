@@ -6,6 +6,7 @@ from .delivery import CDEKDeliveryPoint, UserAddress, UserDeliveryPoint
 from .order import Order, OrderItem
 from .payment import Payment
 from .product import Product
+from .promo_code import PromoCode
 from .referral import Referral, ReferralBonus
 from .user import Role, User
 
@@ -25,4 +26,5 @@ __all__ = [
     "OrderItem",
     "Referral",
     "ReferralBonus",
+    "PromoCode",
 ]

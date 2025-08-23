@@ -8,7 +8,7 @@ from starlette.responses import RedirectResponse
 
 from app.core.logger import logger
 from app.core.settings import settings
-from app.models import Order, Product, User
+from app.models import Order, Product, PromoCode, User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -27,15 +27,19 @@ class BasicAuth(AuthenticationBackend):
                 return False
 
             is_username_correct = username == settings.ADMIN_USER
-            is_password_correct = pwd_context.verify(password, settings.ADMIN_PASSWORD_HASH)
-            
-            logger.info(f"Auth check: user_ok={is_username_correct}, pass_ok={is_password_correct}")
+            is_password_correct = pwd_context.verify(
+                password, settings.ADMIN_PASSWORD_HASH
+            )
+
+            logger.info(
+                f"Auth check: user_ok={is_username_correct}, pass_ok={is_password_correct}"
+            )
 
             if is_username_correct and is_password_correct:
                 logger.info("Login successful, updating session.")
                 request.session.update({"token": "admin_token"})
                 return True
-            
+
             logger.warning("Login failed: invalid credentials.")
             return False
 
@@ -100,9 +104,40 @@ class OrderAdmin(ModelView, model=Order):
     icon = "fa-solid fa-shopping-cart"
 
 
+class PromoCodeAdmin(ModelView, model=PromoCode):
+    column_list = [
+        PromoCode.code,
+        PromoCode.discount_percent,
+        PromoCode.is_active,
+        PromoCode.uses_left,
+        PromoCode.max_uses,
+        PromoCode.expires_at,
+    ]
+    column_searchable_list = [PromoCode.code]
+    column_sortable_list = [PromoCode.created_at, PromoCode.expires_at]
+    column_editable_list = [
+        PromoCode.discount_percent,
+        PromoCode.is_active,
+        PromoCode.uses_left,
+        PromoCode.max_uses,
+    ]
+    form_columns = [
+        PromoCode.code,
+        PromoCode.discount_percent,
+        PromoCode.is_active,
+        PromoCode.max_uses,
+        "uses_left",
+        PromoCode.expires_at,
+    ]
+    name = "Промокод"
+    name_plural = "Промокоды"
+    icon = "fa-solid fa-tags"
+
+
 def init_admin(app, engine):
     admin = Admin(app, engine, authentication_backend=authentication_backend)
 
     admin.add_view(UserAdmin)
     admin.add_view(ProductAdmin)
     admin.add_view(OrderAdmin)
+    admin.add_view(PromoCodeAdmin)

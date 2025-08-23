@@ -31,6 +31,7 @@ class OrderCRUD:
         delivery_tariff_code: int,
         *,
         discount_multiplier: Decimal = Decimal("1"),
+        promo_discount: Decimal = Decimal("0"),
         delivery_point: str = None,
         delivery_to_location: RequestLocation = None,
         delivery_comment: Optional[str] = None,
@@ -73,6 +74,8 @@ class OrderCRUD:
             delivery_tariff_code=delivery_tariff_code,
         )
 
+        order.calculate_totals(discount_multiplier, promo_discount)
+        
         # Добавляем метод оплаты
         order.payment_method = payment_method
         order.payment_status = "pending"

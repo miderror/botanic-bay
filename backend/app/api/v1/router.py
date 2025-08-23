@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (  # , orders, users,
     orders,
     payment,
     products,
+    promo_code,
     proxy,
     referral,
     user,
@@ -42,3 +43,7 @@ api_router.include_router(debug.router, prefix="/debug", tags=[Tags.DEBUG])
 
 # Добавляем маршрут для проксирования виджета ЮKассы
 api_router.include_router(proxy.router, prefix="/proxy", tags=[Tags.PROXY])
+
+api_router.include_router(
+    promo_code.router, prefix="/promo-codes", tags=["promo-codes"]
+)
