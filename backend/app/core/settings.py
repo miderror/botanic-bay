@@ -112,6 +112,8 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str
     TELEGRAM_WEBHOOK_URL: Optional[str] = None
 
+    USE_MOCK: bool = False
+
     # Payment Gateway settings (YooKassa)
     YOOKASSA_SHOP_ID: str
     YOOKASSA_SECRET_KEY: str

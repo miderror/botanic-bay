@@ -661,7 +661,7 @@ class PaymentService:
                 },
             )
 
-            if settings.ENVIRONMENT == "development":
+            if settings.USE_MOCK:
                 logger.warning(
                     "DEV MODE: Automatically processing payment as successful."
                 )

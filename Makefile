@@ -1,4 +1,4 @@
-	 # Определение файла docker-compose (по умолчанию используем dev)
+# Определение файла docker-compose (по умолчанию используем dev)
 DC_FILE ?= docker-compose.dev.yml
 
 # Определяем команду docker-compose с нужным файлом
