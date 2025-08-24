@@ -86,10 +86,15 @@ class OrderService:
         delivery_info["delivery_tariff_code"] = cheapest_tariff.tariff_code
 
         if delivery_point_id:
-            point = await self.user_delivery_point_crud.get_or_none(point_id=delivery_point_id)
+            point = await self.user_delivery_point_crud.get_or_none(
+                point_id=delivery_point_id
+            )
             if point and point.cdek_delivery_point:
                 delivery_info["delivery_point"] = point.cdek_delivery_point.code
-                logger.debug("Added pickup point code to delivery info", extra={"code": point.cdek_delivery_point.code})
+                logger.debug(
+                    "Added pickup point code to delivery info",
+                    extra={"code": point.cdek_delivery_point.code},
+                )
         elif address_id:
             address = await self.user_address_crud.get_or_none(address_id=address_id)
             if address:
@@ -98,7 +103,10 @@ class OrderService:
                     from_attributes=True,
                 )
                 delivery_info["delivery_comment"] = self._get_delivery_comment(address)
-                logger.debug("Added courier address to delivery info", extra={"address": address.address})
+                logger.debug(
+                    "Added courier address to delivery info",
+                    extra={"address": address.address},
+                )
 
         logger.info("Final delivery info", extra=delivery_info)
         return delivery_info
@@ -135,7 +143,7 @@ class OrderService:
         try:
             promo_code_service = PromoCodeService(self.session)
             promo_discount = Decimal("0")
-            applied_promo_code = None
+            applied_promo_code_obj = None
 
             if data.promo_code:
                 try:
@@ -143,16 +151,18 @@ class OrderService:
                         data.promo_code
                     )
                     subtotal_before_discounts = sum(
-                        item.subtotal for item in cart.items
+                        Decimal(item.price) * item.quantity for item in cart.items
                     )
+
                     promo_discount = (
-                        subtotal_before_discounts * promo_code_obj.discount_percent
-                    ) / Decimal("100")
-                    applied_promo_code = promo_code_obj
+                        subtotal_before_discounts
+                        * (promo_code_obj.discount_percent / Decimal("100"))
+                    ).quantize(Decimal("0.01"))
+                    
+                    applied_promo_code_obj = promo_code_obj
                 except HTTPException as e:
                     logger.warning(
-                        f"Invalid promo code '{data.promo_code}' provided during order creation: {e.detail}",
-                        extra={"user_id": str(user_id)},
+                        f"Invalid promo code '{data.promo_code}': {e.detail}"
                     )
 
             delivery_info = await self._get_delivery_info(
@@ -172,12 +182,12 @@ class OrderService:
                 delivery_method=data.delivery_method,
                 payment_method=data.payment_method,
             )
-
-            if applied_promo_code:
+            
+            if applied_promo_code_obj:
                 from app.crud.promo_code import PromoCodeCRUD
                 promo_crud = PromoCodeCRUD(self.session)
-                await promo_crud.decrement_uses(applied_promo_code.id)
-                order.promo_code = applied_promo_code.code
+                await promo_crud.decrement_uses(applied_promo_code_obj.id)
+                order.promo_code = applied_promo_code_obj.code
                 await self.session.commit()
 
             logger.info(

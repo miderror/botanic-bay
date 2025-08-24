@@ -132,6 +132,13 @@ class DiscountService:
             next_percent=float(next_percent),
         )
 
+    async def get_current_discount_multiplier(self, user_id: UUID) -> Decimal:
+        """Возвращает множитель скидки для пользователя (например, 0.95 для 5% скидки)."""
+        record = await self.discount_crud.get_or_create(user_id)
+        percent = self.LEVEL_PERCENTS.get(record.current_level, Decimal(0))
+        multiplier = (Decimal(100) - percent) / Decimal(100)
+        return multiplier.quantize(Decimal("0.0001"))
+
     async def monthly_discount_decay(self):
         """
         Понижает уровень скидки на один шаг тем пользователям,

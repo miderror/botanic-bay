@@ -9,7 +9,8 @@ export enum ReferralPayoutStatus {
 export interface IReferral {
   id: UUID;
   full_name: string;
-  balance?: number;
+  total_balance: number;
+  withdrawable_balance: number;
   referral_bonus: number;
   is_registered?: boolean;
   referrals_count?: number;

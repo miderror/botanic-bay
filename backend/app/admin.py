@@ -8,7 +8,16 @@ from starlette.responses import RedirectResponse
 
 from app.core.logger import logger
 from app.core.settings import settings
-from app.models import Order, Product, PromoCode, User
+from app.models import (
+    Order,
+    PayoutRequest,
+    Product,
+    PromoCode,
+    Referral,
+    ReferralBonus,
+    User,
+    UserDiscount,
+)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -60,15 +69,17 @@ authentication_backend = BasicAuth(secret_key=settings.SECRET_KEY)
 
 class UserAdmin(ModelView, model=User):
     column_list = [
-        User.id,
         User.telegram_id,
         User.username,
         User.full_name,
+        User.bonus_balance,
+        "discount.current_level",
         User.is_active,
         User.roles,
     ]
-    column_searchable_list = [User.username, User.full_name]
-    column_sortable_list = [User.created_at]
+    column_searchable_list = [User.username, User.full_name, User.telegram_id]
+    column_sortable_list = [User.created_at, User.bonus_balance]
+    column_editable_list = [User.bonus_balance, User.is_active]
     name = "Пользователь"
     name_plural = "Пользователи"
     icon = "fa-solid fa-user"
@@ -143,6 +154,82 @@ class PromoCodeAdmin(ModelView, model=PromoCode):
     icon = "fa-solid fa-tags"
 
 
+class ReferralAdmin(ModelView, model=Referral):
+    name = "Реферал"
+    name_plural = "Рефералы"
+    icon = "fa-solid fa-users"
+    column_list = [
+        "user.full_name",
+        "referrer.user.full_name",
+        Referral.is_registered,
+    ]
+    column_labels = {
+        "user.full_name": "Пользователь",
+        "referrer.user.full_name": "Пригласил",
+        "is_registered": "Зарегистрирован в реф. системе",
+    }
+    column_searchable_list = ["user.full_name", "referrer.user.full_name"]
+
+
+class ReferralBonusAdmin(ModelView, model=ReferralBonus):
+    name = "Реферальный бонус"
+    name_plural = "Реферальные бонусы"
+    icon = "fa-solid fa-money-bill-wave"
+    column_list = [
+        "referrer.user.full_name",
+        "referral.user.full_name",
+        ReferralBonus.bonus_amount,
+        ReferralBonus.created_at,
+    ]
+    column_labels = {
+        "referrer.user.full_name": "Получатель бонуса",
+        "referral.user.full_name": "Приглашенный",
+        "bonus_amount": "Сумма бонуса",
+        "created_at": "Дата начисления",
+    }
+    column_sortable_list = [ReferralBonus.created_at, ReferralBonus.bonus_amount]
+
+
+class PayoutRequestAdmin(ModelView, model=PayoutRequest):
+    name = "Заявка на вывод"
+    name_plural = "Заявки на вывод"
+    icon = "fa-solid fa-hand-holding-dollar"
+    column_list = [
+        "user.full_name",
+        PayoutRequest.amount,
+        PayoutRequest.status,
+        PayoutRequest.payment_details,
+        PayoutRequest.created_at,
+    ]
+    column_labels = {
+        "user.full_name": "Пользователь",
+        "amount": "Сумма",
+        "status": "Статус",
+        "payment_details": "Реквизиты",
+        "created_at": "Дата заявки",
+    }
+    column_editable_list = [PayoutRequest.status]
+    column_sortable_list = [PayoutRequest.created_at]
+
+
+class UserDiscountAdmin(ModelView, model=UserDiscount):
+    name = "Скидка пользователя"
+    name_plural = "Скидки пользователей"
+    icon = "fa-solid fa-percent"
+    column_list = [
+        "user.full_name",
+        UserDiscount.current_level,
+        UserDiscount.last_purchase_date,
+    ]
+    column_labels = {
+        "user.full_name": "Пользователь",
+        "current_level": "Уровень скидки",
+        "last_purchase_date": "Дата последней покупки",
+    }
+    column_editable_list = [UserDiscount.current_level]
+    column_sortable_list = [UserDiscount.last_purchase_date]
+
+
 def init_admin(app, engine):
     admin = Admin(app, engine, authentication_backend=authentication_backend)
 
@@ -150,3 +237,7 @@ def init_admin(app, engine):
     admin.add_view(ProductAdmin)
     admin.add_view(OrderAdmin)
     admin.add_view(PromoCodeAdmin)
+    admin.add_view(ReferralAdmin)
+    admin.add_view(ReferralBonusAdmin)
+    admin.add_view(PayoutRequestAdmin)
+    admin.add_view(UserDiscountAdmin)

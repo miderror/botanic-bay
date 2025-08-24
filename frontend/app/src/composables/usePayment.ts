@@ -186,9 +186,10 @@ export function usePayment() {
       const result = await checkPaymentStatus(paymentId);
       if (result.isSuccessful) {
         clearStoredPaymentId();
-    }
-
-    return result; 
+        await cartStore.clearCart();
+        logger.info("Cart cleared after successful payment return");
+      }
+      return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Ошибка при обработке возврата после оплаты";
       error.value = message;
@@ -437,37 +438,30 @@ export function usePayment() {
   };
 
   // Обработчик успешной оплаты
+  
   const handleWidgetSuccess = async () => {
     const paymentId = getStoredPaymentId();
 
     if (paymentId) {
-      try {
-        // Проверяем статус платежа
-        const result = await checkPaymentStatus(paymentId);
+        try {
+            const result = await checkPaymentStatus(paymentId);
+            if (result.isSuccessful) {
+                showNotification("Оплата успешно завершена!", "success");
+                clearStoredPaymentId();
 
-        if (result.isSuccessful) {
-          showNotification("Оплата успешно завершена!", "success");
-          clearStoredPaymentId();
+                // Очищаем корзину
+                await cartStore.clearCart();
+                logger.info("Cart cleared after successful payment");
 
-          // Очищаем корзину только при успешной оплате
-          try {
-            await cartStore.clearCart();
-            logger.info("Cart cleared after successful payment");
-          } catch (cartError) {
-            logger.error("Failed to clear cart after successful payment", { error: cartError });
-          }
-
-          // Перенаправляем на страницу с результатом
-          router.push({
-            name: "payment-result",
-            params: { orderId: result.orderId },
-          });
+                router.push({
+                    name: "payment-result",
+                    params: { orderId: result.orderId },
+                });
+            }
+        } catch (error) {
+            logger.error("Failed to check payment status after widget close", { error });
         }
-      } catch (error) {
-        logger.error("Failed to check payment status after widget close", { error });
-      }
     }
-
     closeWidget();
   };
 

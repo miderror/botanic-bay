@@ -7,7 +7,7 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import logger
-from app.models.referral import ReferralBonus
+from app.models.referral import Referral, ReferralBonus
 
 
 class ReferralBonusCRUD:
@@ -94,13 +94,21 @@ class ReferralBonusCRUD:
 
         # 2) Сумма всех уже запрошенных (pending + approved)
         from app.enums.referral import ReferralPayoutStatus
-        from app.models.referral import ReferralPayoutRequest
+        from app.models.referral import PayoutRequest  # <-- ИСПРАВЛЕНО
+
+        # Получаем user_id из referrer_id
+        referrer_user_id_q = select(Referral.user_id).where(Referral.id == referrer_id)
+        referrer_user_id_res = await self.session.execute(referrer_user_id_q)
+        user_id = referrer_user_id_res.scalar_one_or_none()
+        
+        if not user_id:
+            return total_bonuses
 
         payouts_q = select(
-            func.coalesce(func.sum(ReferralPayoutRequest.amount), 0)
+            func.coalesce(func.sum(PayoutRequest.amount), 0)
         ).where(
-            ReferralPayoutRequest.referrer_id == referrer_id,
-            ReferralPayoutRequest.status == ReferralPayoutStatus.PENDING,
+            PayoutRequest.user_id == user_id,
+            PayoutRequest.status.in_([ReferralPayoutStatus.PENDING, ReferralPayoutStatus.APPROVED]),
         )
         payouts_res = await self.session.execute(payouts_q)
         total_requested = payouts_res.scalar_one()

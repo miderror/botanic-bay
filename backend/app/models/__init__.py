@@ -7,8 +7,8 @@ from .order import Order, OrderItem
 from .payment import Payment
 from .product import Product
 from .promo_code import PromoCode
-from .referral import Referral, ReferralBonus
-from .user import Role, User
+from .referral import PayoutRequest, Referral, ReferralBonus
+from .user import Role, User, UserDiscount, UserProfile
 
 __all__ = [
     "Base",
@@ -27,4 +27,7 @@ __all__ = [
     "Referral",
     "ReferralBonus",
     "PromoCode",
+    "PayoutRequest",
+    "UserProfile",
+    "UserDiscount",
 ]

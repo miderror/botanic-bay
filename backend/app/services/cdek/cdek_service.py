@@ -151,8 +151,34 @@ class CDEKService:
         user_address_id: UUID | None = None,
         user_delivery_point_id: UUID | None = None,
     ) -> TariffCode:
+        """
+        ВРЕМЕННАЯ ЗАГЛУШКА для расчета стоимости доставки.
+        Всегда возвращает фиксированную стоимость.
+        """
         if not user_address_id and not user_delivery_point_id:
-            raise HTTPException(status_code=400, detail="Delivery address or point must be provided")
+            raise HTTPException(
+                status_code=400, detail="Delivery address or point must be provided"
+            )
+
+        delivery_mode = DeliveryMode.WAREHOUSE_TO_DOOR
+        if user_delivery_point_id:
+            delivery_mode = DeliveryMode.WAREHOUSE_TO_WAREHOUSE
+
+        logger.info("Using mocked CDEK tariff calculation")
+
+        return TariffCode(
+            tariff_code=137,
+            tariff_name="Посылка склад-дверь",
+            delivery_mode=delivery_mode,
+            delivery_sum=0.00,
+            period_min=2,
+            period_max=4,
+        )
+
+        if not user_address_id and not user_delivery_point_id:
+            raise HTTPException(
+                status_code=400, detail="Delivery address or point must be provided"
+            )
 
         to_location_data = {}
         expected_delivery_mode: DeliveryMode
@@ -163,21 +189,25 @@ class CDEKService:
             )
             if not user_delivery_point or not user_delivery_point.cdek_delivery_point:
                 raise HTTPException(status_code=404, detail="Delivery point not found")
-            
-            to_location_data = {"address": user_delivery_point.cdek_delivery_point.address}
+
+            to_location_data = {
+                "address": user_delivery_point.cdek_delivery_point.address
+            }
             expected_delivery_mode = DeliveryMode.WAREHOUSE_TO_WAREHOUSE
-        
+
         elif user_address_id:
             user_address = await self.user_address_crud.get_or_none(
                 address_id=user_address_id,
             )
             if not user_address:
                 raise HTTPException(status_code=404, detail="User address not found")
-            
+
             to_location_data = {"address": user_address.address}
             expected_delivery_mode = DeliveryMode.WAREHOUSE_TO_DOOR
         else:
-            raise HTTPException(status_code=400, detail="No delivery destination provided")
+            raise HTTPException(
+                status_code=400, detail="No delivery destination provided"
+            )
 
         total_weight = 0
         max_length, max_width, max_height = 0, 0, 0
@@ -194,8 +224,10 @@ class CDEKService:
         package = CalculatorPackage(
             weight=total_weight, length=max_length, width=max_width, height=max_height
         )
-        
-        from_location = CalculatorLocation(address="Россия, Москва, Домодедово (Растуново)")
+
+        from_location = CalculatorLocation(
+            address="Россия, Москва, Домодедово (Растуново)"
+        )
         to_location = CalculatorLocation(**to_location_data)
 
         logger.info(
@@ -214,41 +246,52 @@ class CDEKService:
                 packages=[package],
             )
         )
-        
-        logger.debug("CDEK tariff calculation response", extra={"tariffs": result.model_dump()})
+
+        logger.debug(
+            "CDEK tariff calculation response", extra={"tariffs": result.model_dump()}
+        )
 
         if result.tariff_codes:
             suitable_tariffs = sorted(
-                [t for t in result.tariff_codes if t.delivery_mode == expected_delivery_mode],
+                [
+                    t
+                    for t in result.tariff_codes
+                    if t.delivery_mode == expected_delivery_mode
+                ],
                 key=lambda x: x.delivery_sum,
             )
             if suitable_tariffs:
                 cheapest = suitable_tariffs[0]
-                logger.info("Cheapest CDEK tariff found with matching mode", extra=cheapest.model_dump())
+                logger.info(
+                    "Cheapest CDEK tariff found with matching mode",
+                    extra=cheapest.model_dump(),
+                )
                 return cheapest
-            
-            all_tariffs_sorted = sorted(result.tariff_codes, key=lambda x: x.delivery_sum)
+
+            all_tariffs_sorted = sorted(
+                result.tariff_codes, key=lambda x: x.delivery_sum
+            )
             if all_tariffs_sorted:
                 cheapest_any_mode = all_tariffs_sorted[0]
                 logger.warning(
-                    "No tariff with expected mode found, returning cheapest available", 
+                    "No tariff with expected mode found, returning cheapest available",
                     extra={
                         "expected_mode": expected_delivery_mode.name,
-                        "found_tariff": cheapest_any_mode.model_dump()
-                    }
+                        "found_tariff": cheapest_any_mode.model_dump(),
+                    },
                 )
                 return cheapest_any_mode
 
         logger.error(
-            "No suitable CDEK tariffs found for the given destination", 
+            "No suitable CDEK tariffs found for the given destination",
             extra={
                 "to_location": to_location_data,
-                "cdek_response": result.model_dump()
-            }
+                "cdek_response": result.model_dump(),
+            },
         )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Не удалось рассчитать стоимость доставки для указанного адреса."
+            detail="Не удалось рассчитать стоимость доставки для указанного адреса.",
         )
 
     async def create_cdek_order(self, order: Order, user: User) -> dict | None:

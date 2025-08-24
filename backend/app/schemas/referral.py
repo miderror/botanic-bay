@@ -36,6 +36,8 @@ class ReferralChildBonus(BaseModel):
 class SReferral(BaseModel):
     id: UUID
     full_name: str
+    total_balance: float
+    withdrawable_balance: float
     referral_bonus: float
     balance: Optional[float] = None
     referrals_count: Optional[int] = None

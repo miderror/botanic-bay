@@ -61,7 +61,10 @@ async def get_user_monthly_orders(
     order_service: OrderService = Depends(get_order_service),
 ):
     try:
-        return await order_service.get_monthly_orders_amount(current_user.id)
+        count = await order_service.order_crud.get_current_month_orders_count(
+            current_user.id
+        )
+        return SUserMonthlyOrders(monthly_orders_amount=count)
     except Exception as e:
         logger.error(
             "Failed to get user monthly orders amount",

@@ -8,7 +8,7 @@ from app.crud.cart import CartCRUD
 from app.crud.category import CategoryCRUD
 from app.crud.order import OrderCRUD
 from app.crud.payment import PaymentCRUD
-from app.crud.payout_request import ReferralPayoutRequestCRUD
+from app.crud.payout_request import PayoutRequestCRUD
 from app.crud.product import ProductCRUD
 from app.crud.referral import ReferralCRUD
 from app.crud.referral_bonus import ReferralBonusCRUD
@@ -181,7 +181,7 @@ async def get_referral_service(
     referral_crud = ReferralCRUD(session)
     referral_bonus_crud = ReferralBonusCRUD(session)
     order_crud = OrderCRUD(session)
-    payout_request_crud = ReferralPayoutRequestCRUD(session)
+    payout_request_crud = PayoutRequestCRUD(session)
 
     return ReferralService(
         await get_bot_manager(),

@@ -42,7 +42,7 @@ class Referral(Base):
     signed_conditions = Column(Boolean, nullable=False, default=False)
     signed_user_terms = Column(Boolean, nullable=False, default=False)
 
-    user = relationship("User", backref="referral", lazy="selectin")
+    user = relationship("User", back_populates="referral", lazy="selectin")
 
     children = relationship(
         "Referral",
@@ -118,26 +118,22 @@ class ReferralBonus(Base):
         )
 
 
-class ReferralPayoutRequest(Base):
-    __tablename__ = "referral_payout_requests"
+class PayoutRequest(Base):
+    __tablename__ = "payout_requests"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    bank_code = Column(String(11), nullable=False)
-    account_number = Column(String(34), nullable=False)
+    user_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     amount = Column(Numeric(10, 2), nullable=False)
     status = Column(
-        Enum(ReferralPayoutStatus),
-        default=str(ReferralPayoutStatus.PENDING),
-    )
-
-    referrer_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("referrals.id", ondelete="CASCADE"),
+        Enum(ReferralPayoutStatus, name="referralpayoutstatus"),
+        default=ReferralPayoutStatus.PENDING,
         nullable=False,
     )
+    payment_details = Column(String, nullable=False)
 
-    referrer = relationship(
-        "Referral",
-        backref="payout_requests",
-        lazy="selectin",
-    )
+    user = relationship("User", back_populates="payout_requests")
+
+    def __repr__(self):
+        return f"<PayoutRequest user_id={self.user_id} amount={self.amount} status={self.status}>"

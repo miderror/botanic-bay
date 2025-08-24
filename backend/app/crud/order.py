@@ -75,7 +75,7 @@ class OrderCRUD:
         )
 
         order.calculate_totals(discount_multiplier, promo_discount)
-        
+
         # Добавляем метод оплаты
         order.payment_method = payment_method
         order.payment_status = "pending"
@@ -354,16 +354,17 @@ class OrderCRUD:
         return res.scalar_one()
 
     async def get_current_month_orders_count(self, user_id: UUID) -> int:
-        now = datetime.now(tz=timezone.utc)
-        start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        """Считает количество оплаченных заказов пользователя за текущий календарный месяц."""
+        now = datetime.now(timezone.utc)
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        q = select(func.count(Order.id)).where(
+        query = select(func.count(Order.id)).where(
             Order.user_id == user_id,
-            Order.status == OrderStatus.DELIVERED,
-            Order.created_at >= start,
+            Order.status == OrderStatus.PAID,
+            Order.created_at >= start_of_month,
         )
-        res = await self.session.execute(q)
-        return res.unique().scalar_one()
+        result = await self.session.execute(query)
+        return result.scalar_one()
 
     async def has_orders_in_range(
         self,

@@ -1,14 +1,16 @@
-# backend/app/services/payment/payment_service.py
 from typing import Any, Dict, Optional, Tuple
 from uuid import UUID
 
-from fastapi import HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.logger import logger
+from app.core.settings import settings
 from app.crud.order import OrderCRUD
 from app.crud.payment import PaymentCRUD
+from app.crud.payout_request import PayoutRequestCRUD
+from app.crud.referral import ReferralCRUD
+from app.crud.referral_bonus import ReferralBonusCRUD
 from app.models.payment import Payment
+from app.models.referral import Referral
+from app.models.user import User
 from app.schemas.payment import (
     PaymentProvider,
     PaymentStatus,
@@ -18,6 +20,12 @@ from app.schemas.payment import (
 from app.services.order.discount_service import DiscountService
 from app.services.payment.payment_interface import IPaymentProvider
 from app.services.payment.yookassa_service import YookassaService
+from app.services.referral.referral_service import ReferralService
+from app.services.telegram.bot_manager import TelegramBotManager
+from fastapi import HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 
 class PaymentService:
@@ -38,7 +46,6 @@ class PaymentService:
         self.discount_service = discount_service
         self.session = session
 
-        # Словарь с доступными провайдерами платежей
         self.providers: Dict[str, IPaymentProvider] = {
             PaymentProvider.YOOKASSA.value: YookassaService()
         }
@@ -79,7 +86,6 @@ class PaymentService:
         Raises:
             HTTPException: При ошибке создания платежа
         """
-        # Получаем заказ
         order = await self.order_crud.get_order(order_id)
         if not order:
             logger.warning("Order not found", extra={"order_id": str(order_id)})
@@ -87,7 +93,6 @@ class PaymentService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Order not found"
             )
 
-        # Проверяем статус заказа
         if order.status not in ["pending", "created"]:
             logger.warning(
                 "Invalid order status for payment",
@@ -99,13 +104,10 @@ class PaymentService:
             )
 
         try:
-            # Получаем провайдера
             provider = self._get_provider(provider_name)
 
-            # Создаем платеж в провайдере
             provider_response = await provider.create_payment(order, return_url)
 
-            # Получаем URL для оплаты
             confirmation_url = provider_response.get("confirmation", {}).get(
                 "confirmation_url"
             )
@@ -123,7 +125,6 @@ class PaymentService:
                     detail="Payment system error",
                 )
 
-            # Создаем платеж в нашей БД
             payment_data = SPaymentCreate(
                 order_id=order_id,
                 provider=provider_name,
@@ -134,7 +135,6 @@ class PaymentService:
 
             payment = await self.payment_crud.create_payment(payment_data)
 
-            # Обновляем данные платежа из ответа провайдера
             payment_update = SPaymentUpdate(
                 provider_payment_id=provider_response.get("id"),
                 status=provider_response.get("status", "pending"),
@@ -144,7 +144,6 @@ class PaymentService:
 
             payment = await self.payment_crud.update_payment(payment.id, payment_update)
 
-            # Обновляем статус заказа и метод оплаты
             order.payment_method = provider_name
             order.payment_status = "pending"
             await self.session.commit()
@@ -192,7 +191,6 @@ class PaymentService:
         Raises:
             HTTPException: Если платеж не найден
         """
-        # Получаем платеж
         payment = await self.payment_crud.get_payment(payment_id)
         if not payment:
             logger.warning("Payment not found", extra={"payment_id": str(payment_id)})
@@ -201,16 +199,13 @@ class PaymentService:
             )
 
         try:
-            # Получаем провайдера
             provider = self._get_provider(payment.provider)
 
-            # Проверяем статус у провайдера
             if payment.provider_payment_id:
                 provider_response = await provider.check_payment(
                     payment.provider_payment_id
                 )
 
-                # Обновляем статус платежа
                 payment_update = SPaymentUpdate(
                     status=provider_response.get("status", payment.status),
                     payment_data=provider_response,
@@ -220,11 +215,9 @@ class PaymentService:
                     payment.id, payment_update
                 )
 
-                # Если платеж успешен, обновляем статус заказа
                 if payment.status == PaymentStatus.SUCCEEDED.value:
                     await self._process_successful_payment(payment)
 
-                # Если платеж отменен, тоже обновляем статус заказа
                 elif payment.status in [
                     PaymentStatus.CANCELED.value,
                     PaymentStatus.FAILED.value,
@@ -239,7 +232,6 @@ class PaymentService:
                 extra={"payment_id": str(payment_id), "error": str(e)},
                 exc_info=True,
             )
-            # Возвращаем платеж без обновления
             return payment
 
     async def process_webhook(
@@ -259,13 +251,10 @@ class PaymentService:
             HTTPException: При ошибке обработки вебхука
         """
         try:
-            # Получаем провайдера
             provider = self._get_provider(provider_name)
 
-            # Обрабатываем вебхук у провайдера
             payment_data = await provider.process_webhook(webhook_data)
 
-            # Получаем ID платежа провайдера
             provider_payment_id = payment_data.get("provider_payment_id")
             if not provider_payment_id:
                 logger.warning(
@@ -274,7 +263,6 @@ class PaymentService:
                 )
                 return {"status": "error", "message": "No payment ID"}
 
-            # Ищем платеж в нашей системе
             payment = await self.payment_crud.get_payment_by_provider_id(
                 provider_name, provider_payment_id
             )
@@ -289,7 +277,6 @@ class PaymentService:
                 )
                 return {"status": "error", "message": "Payment not found"}
 
-            # Обновляем статус платежа
             payment_update = SPaymentUpdate(
                 status=payment_data.get("status", payment.status),
                 payment_data=webhook_data.get("object"),
@@ -299,11 +286,9 @@ class PaymentService:
                 payment.id, payment_update
             )
 
-            # Если платеж успешен, обновляем статус заказа
             if updated_payment.status == PaymentStatus.SUCCEEDED.value:
                 await self._process_successful_payment(updated_payment)
 
-            # Если платеж отменен, тоже обновляем статус заказа
             elif updated_payment.status in [
                 PaymentStatus.CANCELED.value,
                 PaymentStatus.FAILED.value,
@@ -359,7 +344,6 @@ class PaymentService:
         Raises:
             HTTPException: При ошибке возврата
         """
-        # Получаем платеж
         payment = await self.payment_crud.get_payment(payment_id)
         if not payment:
             logger.warning("Payment not found", extra={"payment_id": str(payment_id)})
@@ -367,7 +351,6 @@ class PaymentService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found"
             )
 
-        # Проверяем статус платежа
         if payment.status != PaymentStatus.SUCCEEDED.value:
             logger.warning(
                 "Cannot refund payment with status",
@@ -379,16 +362,13 @@ class PaymentService:
             )
 
         try:
-            # Получаем провайдера
             provider = self._get_provider(payment.provider)
 
-            # Выполняем возврат у провайдера
             if payment.provider_payment_id:
                 refund_response = await provider.refund_payment(
                     payment.provider_payment_id, amount
                 )
 
-                # Обновляем статус платежа
                 payment_update = SPaymentUpdate(
                     status=PaymentStatus.REFUNDED.value,
                     payment_data=(
@@ -402,7 +382,6 @@ class PaymentService:
                     payment.id, payment_update
                 )
 
-                # Обновляем статус заказа
                 order = await self.order_crud.get_order(payment.order_id)
                 if order and order.status == "paid":
                     await self.order_crud.update_status(order.id, "refunded")
@@ -431,12 +410,23 @@ class PaymentService:
 
     async def _process_successful_payment(self, payment: Payment) -> None:
         """Обработка успешного платежа"""
-        from sqlalchemy import update
         from app.models.order import Order
         from app.models.order_status import OrderStatus
         from app.models.user import User
+        from sqlalchemy import update
 
-        order = await self.order_crud.get_order(payment.order_id)
+        order_query = (
+            select(Order)
+            .options(
+                joinedload(Order.user).options(
+                    joinedload(User.referral).options(joinedload(Referral.referrer))
+                )
+            )
+            .where(Order.id == payment.order_id)
+        )
+        result = await self.session.execute(order_query)
+        order = result.unique().scalar_one_or_none()
+
         if not order:
             logger.error(
                 "Order not found for successful payment",
@@ -458,11 +448,47 @@ class PaymentService:
         logger.info("Order status updated to PAID", extra={"order_id": str(order.id)})
 
         try:
+            await self.discount_service.on_order_paid(order.user_id, order.id)
+            logger.info(
+                "User discount updated after payment", extra={"order_id": str(order.id)}
+            )
+        except Exception as e:
+            logger.error(
+                "Failed to update user discount",
+                extra={"order_id": str(order.id), "error": str(e)},
+            )
+
+        try:
+            referral_crud = ReferralCRUD(self.session)
+            referral_bonus_crud = ReferralBonusCRUD(self.session)
+            payout_request_crud = PayoutRequestCRUD(self.session)
+            bot_manager = await TelegramBotManager()
+            await bot_manager.setup()
+
+            referral_service = ReferralService(
+                bot_manager,
+                referral_crud,
+                referral_bonus_crud,
+                self.order_crud,
+                payout_request_crud,
+                self.session,
+            )
+            await referral_service.apply_referral_bonus(order)
+            logger.info(
+                "Referral bonuses applied after payment",
+                extra={"order_id": str(order.id)},
+            )
+        except Exception as e:
+            logger.error(
+                "Failed to apply referral bonuses",
+                extra={"order_id": str(order.id), "error": str(e)},
+                exc_info=True,
+            )
+
+        try:
             cdek_service = await get_cdek_service(self.session)
             user_crud = UserCRUD(self.session)
-            user = await user_crud.get_by_id(
-                order.user_id
-            )
+            user = await user_crud.get_by_id(order.user_id)
 
             if user:
                 cdek_response = await cdek_service.create_cdek_order(order, user)
@@ -496,8 +522,6 @@ class PaymentService:
                 exc_info=True,
             )
 
-        # ... здесь будет вызов referral_service ...
-
         try:
             await self.discount_service.on_order_paid(order.user_id, order.id)
         except Exception as e:
@@ -530,8 +554,6 @@ class PaymentService:
         Args:
             payment: Объект платежа
         """
-        # Логика обработки неудачного платежа
-        # Например, можно вернуть товары на склад или пометить заказ как требующий повторной оплаты
         logger.info(
             "Payment failed or canceled",
             extra={
@@ -563,7 +585,6 @@ class PaymentService:
         Raises:
             HTTPException: При ошибке создания платежа
         """
-        # Получаем заказ
         order = await self.order_crud.get_order(order_id)
         if not order:
             logger.warning("Order not found", extra={"order_id": str(order_id)})
@@ -571,7 +592,6 @@ class PaymentService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Order not found"
             )
 
-        # Проверяем статус заказа
         if order.status not in ["pending", "created"]:
             logger.warning(
                 "Invalid order status for payment",
@@ -583,15 +603,12 @@ class PaymentService:
             )
 
         try:
-            # Получаем провайдера
             provider = self._get_provider(provider_name)
 
-            # Создаем платеж с типом подтверждения embedded
             provider_response = await provider.create_payment(
                 order, return_url, confirmation_type=confirmation_type
             )
 
-            # Получаем токен подтверждения для виджета
             confirmation_token = provider_response.get("confirmation", {}).get(
                 "confirmation_token"
             )
@@ -609,7 +626,6 @@ class PaymentService:
                     detail="Payment system error",
                 )
 
-            # Создаем платеж в нашей БД
             payment_data = SPaymentCreate(
                 order_id=order_id,
                 provider=provider_name,
@@ -620,7 +636,6 @@ class PaymentService:
 
             payment = await self.payment_crud.create_payment(payment_data)
 
-            # Обновляем данные платежа из ответа провайдера
             payment_update = SPaymentUpdate(
                 provider_payment_id=provider_response.get("id"),
                 status=provider_response.get("status", "pending"),
@@ -632,7 +647,6 @@ class PaymentService:
 
             payment = await self.payment_crud.update_payment(payment.id, payment_update)
 
-            # Обновляем статус заказа и метод оплаты
             order.payment_method = provider_name
             order.payment_status = "pending"
             await self.session.commit()
@@ -646,6 +660,12 @@ class PaymentService:
                     "confirmation_token": confirmation_token,
                 },
             )
+
+            if settings.ENVIRONMENT == "development":
+                logger.warning(
+                    "DEV MODE: Automatically processing payment as successful."
+                )
+                await self._process_successful_payment(payment)
 
             return payment, confirmation_token
 

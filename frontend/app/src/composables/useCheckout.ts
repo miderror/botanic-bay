@@ -43,9 +43,16 @@ export function useCheckout() {
   const canPay = computed(() => checkoutStore.canProceed);
 
   const totalAmount = computed(() => {
-      const cartTotal = cart.value?.total || 0;
-      const delivery = deliveryCost.value || 0;
-      return cartTotal + delivery;
+    const cartTotal = cart.value?.total || 0;
+    const delivery = deliveryCost.value || 0;
+    
+    const personalDiscountMultiplier = (100 - (checkoutStore.userDiscountPercent || 0)) / 100;
+    const totalAfterPersonalDiscount = cartTotal * personalDiscountMultiplier;
+
+    const promoDiscountAmount = (cartTotal * (checkoutStore.discountPercent || 0)) / 100;
+    const finalTotal = totalAfterPersonalDiscount - promoDiscountAmount + delivery;
+
+    return Math.max(0, finalTotal);
   });
 
   const getDeliveryData = computed(() => {
@@ -110,12 +117,13 @@ export function useCheckout() {
       payment_method: selectedPaymentMethod.value,
       address_id: getDeliveryData.value.address_id || undefined,
       delivery_point_id: getDeliveryData.value.delivery_point_id || undefined,
-      promo_code: promoCode.value || undefined,
+      promo_code: checkoutStore.promoCode || undefined,
     };
 
     logger.debug("Checkout data prepared", { orderData });
     return orderData;
   };
+
 
   const createOrder = async (orderData: ICreateOrder) => {
     try {

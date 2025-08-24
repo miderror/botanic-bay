@@ -1,4 +1,3 @@
-# backend/app/services/telegram/handlers.py
 import json
 from urllib.parse import urlencode
 
@@ -12,21 +11,26 @@ from app.core.settings import settings
 router = Router()
 
 
-@router.message(CommandStart(deep_link=True))
+@router.message(CommandStart())
 async def cmd_start(message: types.Message, command: CommandObject):
     """
-    Обработчик команды /start
-    Отправляет приветственное сообщение и кнопку для открытия WebApp
+    Универсальный обработчик команды /start.
+    Работает и с deeplink (реферальной ссылкой), и без нее.
     """
-    args = command.args
-    payload = json.loads(decode_payload(args))
+    web_app_url = settings.FRONTEND_URL
 
-    query = urlencode(payload)
-    web_app_url = f"{settings.FRONTEND_URL}?{query}"
+    if command.args:
+        try:
+            payload = json.loads(decode_payload(command.args))
+            query = urlencode(payload)
+            web_app_url = f"{settings.FRONTEND_URL}?{query}"
+            logger.info("User started bot with deeplink", extra={"payload": payload})
+        except Exception as e:
+            logger.error(
+                "Failed to decode deeplink payload",
+                extra={"args": command.args, "error": str(e)},
+            )
 
-    await message.answer(web_app_url)
-
-    # Создаем клавиатуру с кнопкой для открытия WebApp
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -37,7 +41,6 @@ async def cmd_start(message: types.Message, command: CommandObject):
         ]
     )
 
-    # Отправляем приветственное сообщение
     await message.answer(
         "👋 Добро пожаловать в магазин БАДов!\n\n"
         "Нажмите кнопку ниже, чтобы открыть каталог товаров.",
@@ -50,7 +53,6 @@ async def cmd_start(message: types.Message, command: CommandObject):
     )
 
 
-# Также можно добавить inline кнопку для открытия WebApp
 @router.message(Command("shop"))
 async def cmd_shop(message: types.Message):
     """

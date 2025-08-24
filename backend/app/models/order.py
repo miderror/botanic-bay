@@ -1,4 +1,3 @@
-# backend/app/models/order.py
 import uuid
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -29,9 +28,8 @@ class OrderItem(Base):
         UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE")
     )
     quantity = Column(Integer, nullable=False)
-    price = Column(Numeric(10, 2), nullable=False)  # Цена на момент заказа
+    price = Column(Numeric(10, 2), nullable=False)
 
-    # Связи с другими таблицами
     order = relationship("Order", back_populates="items")
     product = relationship("Product")
 
@@ -74,7 +72,6 @@ class Order(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     status = Column(String(20), nullable=False, default=OrderStatus.PENDING.value)
 
-    # Информация о доставке
     delivery_method = Column(String(50), nullable=False)
     delivery_warehouse_address = Column(Text, nullable=True)
     delivery_point = Column(String(15), nullable=True)
@@ -83,25 +80,21 @@ class Order(Base):
     delivery_tariff_code = Column(Integer, nullable=False)
 
     delivery_cost = Column(Numeric(10, 2), nullable=False)
-    delivery_data = Column(JSONB, nullable=True)  # Дополнительные данные о доставке
+    delivery_data = Column(JSONB, nullable=True)
 
-    # Информация об оплате
     payment_method = Column(String(50), nullable=True)
     payment_status = Column(String(20), nullable=True)
-    payment_data = Column(JSONB, nullable=True)  # Данные об оплате
+    payment_data = Column(JSONB, nullable=True)
 
-    # Стоимость
-    subtotal = Column(Numeric(10, 2), nullable=False)  # Стоимость товаров
+    subtotal = Column(Numeric(10, 2), nullable=False)
     discount_amount = Column(Numeric(10, 2), default=0)
     promo_code = Column(String(50), nullable=True)
-    total = Column(Numeric(10, 2), nullable=False)  # Полная стоимость с доставкой
+    total = Column(Numeric(10, 2), nullable=False)
 
-    # Дата планируемой отгрузки
     planned_shipping_date = Column(DateTime(timezone=True), nullable=True)
 
     track_number = Column(String, nullable=True, comment="Трек-номер СДЭК")
 
-    # Связи с другими таблицами
     items = relationship(
         "OrderItem", back_populates="order", cascade="all, delete-orphan"
     )
@@ -114,45 +107,30 @@ class Order(Base):
     def calculate_totals(self, discount_multiplier: Decimal, promo_discount: Decimal = Decimal("0")) -> None:
         """
         Пересчет общей стоимости заказа
-        Учитывает стоимость товаров и доставки
+        Учитывает стоимость товаров, персональную скидку, промокод и доставку.
         """
-        # Сбрасываем и заново считаем subtotal
-        self.subtotal = 0
+        self.subtotal = sum(Decimal(item.price) * item.quantity for item in self.items)
 
-        # Логирование для отладки
-        item_details = []
-        for item in self.items:
-            # Используем свойство subtotal из класса OrderItem
-            item_detail = {
-                "product_id": str(item.product_id),
-                "quantity": item.quantity,
-                "price": float(item.price),
-                "subtotal_property": item.subtotal,
-            }
-            # ВАЖНО: самостоятельно считаем subtotal для отладки
-            manual_subtotal = float(item.price) * item.quantity
-            item_detail["manual_subtotal"] = manual_subtotal
+        subtotal_with_personal_discount = (self.subtotal * discount_multiplier).quantize(Decimal("0.01"))
+        
+        subtotal_after_promo = subtotal_with_personal_discount - promo_discount
+        
+        final_subtotal = max(Decimal("0"), subtotal_after_promo)
 
-            # Добавляем к общей сумме используя ТОЛЬКО одну из формул
-            self.subtotal += manual_subtotal
+        self.discount_amount = promo_discount
 
-            item_details.append(item_detail)
+        self.total = final_subtotal + Decimal(self.delivery_cost or 0)
 
-        # Считаем общую сумму с доставкой
-        self.subtotal *= float(discount_multiplier)
-        self.discount_amount = float(promo_discount)
-        self.total = float(self.subtotal or 0) - float(self.discount_amount or 0) + float(self.delivery_cost or 0)
-
-        # Подробное логирование
         logger.info(
-            "Order totals calculation",
+            "Order totals calculation updated",
             extra={
                 "order_id": str(self.id),
-                "item_count": len(self.items),  # Сколько элементов обрабатываем
-                "item_details": item_details,
-                "calculated_subtotal": float(self.subtotal),
-                "delivery_cost": float(self.delivery_cost),
-                "total": float(self.total),
+                "subtotal": float(self.subtotal),
+                "personal_discount_multiplier": float(discount_multiplier),
+                "promo_discount": float(promo_discount),
+                "final_subtotal": float(final_subtotal),
+                "delivery_cost": float(self.delivery_cost or 0),
+                "final_total": float(self.total),
             },
         )
 
@@ -220,7 +198,6 @@ class Order(Base):
             delivery_tariff_code=delivery_tariff_code,
         )
 
-        # Создаем элементы заказа из корзины
         for cart_item in cart.items:
             price = float(cart_item.product.price)
             quantity = cart_item.quantity
@@ -235,17 +212,14 @@ class Order(Base):
                 },
             )
 
-            # Создаем элемент заказа без привязки к order во избежание дублирования
             order_item = OrderItem(
                 product_id=cart_item.product_id,
                 quantity=cart_item.quantity,
-                price=cart_item.product.price,  # Фиксируем текущую цену
+                price=cart_item.product.price,
             )
 
-            # Явно добавляем его в список элементов заказа
             order.items.append(order_item)
 
-        # Рассчитываем итоговую стоимость
         order.calculate_totals(discount_multiplier, promo_discount)
 
         logger.info(
@@ -258,13 +232,12 @@ class Order(Base):
             },
         )
 
-        # Определяем планируемую дату отгрузки
         now = datetime.now().astimezone()
-        if now.hour < 15:  # До 15:00
+        if now.hour < 15:
             order.planned_shipping_date = now.replace(
                 hour=15, minute=0, second=0, microsecond=0
             )
-        else:  # После 15:00 - отгрузка на следующий день
+        else:
             tomorrow = now + timedelta(days=1)
             order.planned_shipping_date = tomorrow.replace(
                 hour=15, minute=0, second=0, microsecond=0
@@ -298,7 +271,6 @@ class Order(Base):
         old_status = self.status
         self.status = new_status
 
-        # Обновляем статус оплаты, если он передан
         if payment_status is not None:
             old_payment_status = self.payment_status
             self.payment_status = payment_status

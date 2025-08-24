@@ -13,11 +13,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logger import logger
 from app.core.settings import settings
 from app.crud.order import OrderCRUD
-from app.crud.payout_request import ReferralPayoutRequestCRUD
+from app.crud.payout_request import PayoutRequestCRUD
 from app.crud.referral import ReferralCRUD
 from app.crud.referral_bonus import ReferralBonusCRUD
+from app.crud.user import UserCRUD
 from app.enums.referral import ReferralPayoutStatus
-from app.models import Order
+from app.models import Order, User
 from app.models.order_status import OrderStatus
 from app.schemas.referral import (
     ReferralLinkPayload,
@@ -39,7 +40,7 @@ class ReferralService:
         referral_crud: ReferralCRUD,
         referral_bonus_crud: ReferralBonusCRUD,
         order_crud: OrderCRUD,
-        payout_request_crud: ReferralPayoutRequestCRUD,
+        payout_request_crud: PayoutRequestCRUD,
         session: AsyncSession,
     ):
         self.bot_manager = bot_manager
@@ -48,6 +49,7 @@ class ReferralService:
         self.order_crud = order_crud
         self.payout_request_crud = payout_request_crud
         self.session = session
+        self.user_crud = UserCRUD(session)
 
     async def get_invite_link(
         self,
@@ -57,7 +59,7 @@ class ReferralService:
     ) -> str:
         if referral_id is None and user_id is None:
             raise ValueError(
-                "Either user_id or referral_id " "must be set to get an invite link!"
+                "Either user_id or referral_id must be set to get an invite link!"
             )
 
         referral = await self.referral_crud.get_or_create(
@@ -103,49 +105,68 @@ class ReferralService:
         )
 
     async def apply_referral_bonus(self, order: Order) -> None:
-        if order.status != OrderStatus.DELIVERED:
+        if order.status != OrderStatus.PAID.value:
+            logger.warning(
+                "Order is not paid, skipping referral bonus",
+                extra={"order_id": str(order.id)},
+            )
             return
 
         referral = await self.referral_crud.get(user_id=order.user_id)
-        if not referral:
+        if not referral or not referral.referrer_id:
+            logger.info(
+                "User has no referrer, skipping bonus",
+                extra={"user_id": str(order.user_id)},
+            )
             return
 
-        current = referral
+        current_referrer_id = referral.referrer_id
         level = 1
 
-        async with self.session.begin():
-            while current.referrer_id and level <= settings.REFERRAL_MAX_LEVEL:
-                parent = await self.referral_crud.get(referral_id=current.referrer_id)
-                if not parent:
+        async with self.session.begin_nested():
+            while current_referrer_id and level <= settings.REFERRAL_MAX_LEVEL:
+                parent_referral = await self.referral_crud.get(
+                    referral_id=current_referrer_id
+                )
+                if not parent_referral:
                     break
 
-                percent = settings.REFERRAL_LEVELS.get(level, 0)
-                if percent:
-                    bonus_amount = (order.total * Decimal(percent)).quantize(
+                percent = settings.REFERRAL_LEVELS.get(level, Decimal("0"))
+                if percent > 0:
+                    bonus_amount = (Decimal(order.total) * percent).quantize(
                         Decimal("0.01")
                     )
 
                     await self.referral_bonus_crud.create(
-                        referrer_id=parent.id,
+                        referrer_id=parent_referral.id,
                         referral_id=referral.id,
                         order_id=order.id,
                         bonus_amount=bonus_amount,
                     )
 
-                    logger.info(
-                        "Applied referral bonus",
-                        extra={
-                            "level": level,
-                            "referrer_referral_id": parent.id,
-                            "referrer_user_id": parent.user_id,
-                            "original_referral_id": referral.id,
-                            "order_id": order.id,
-                            "bonus_amount": str(bonus_amount),
-                        },
-                    )
+                    referrer_user = await self.session.get(User, parent_referral.user_id)
+                    if referrer_user:
+                        referrer_user.bonus_balance += bonus_amount
+                        self.session.add(referrer_user)
+                        logger.info(
+                            "Applied referral bonus and updated user balance",
+                            extra={
+                                "level": level,
+                                "referrer_user_id": str(parent_referral.user_id),
+                                "from_user_id": str(order.user_id),
+                                "order_id": str(order.id),
+                                "bonus_amount": str(bonus_amount),
+                                "new_balance": str(referrer_user.bonus_balance)
+                            },
+                        )
+                    else:
+                        logger.error(f"Referrer user not found: {parent_referral.user_id}")
 
-                current = parent
+
+                current_referrer_id = parent_referral.referrer_id
                 level += 1
+        await self.session.commit()
+
 
     async def get_referral_details(
         self,
@@ -160,24 +181,30 @@ class ReferralService:
         orders_count = await self.order_crud.get_current_month_orders_count(
             referral.user_id
         )
-        referrals_count = await self.referral_crud.get_children_amount(referral_id)
+        referrals_count = await self.referral_crud.get_children_amount(referral.id)
+        
         referral_bonus = await self.referral_bonus_crud.get_total_bonus_for_referrer(
             referral.id
         )
-        balance = await self.referral_bonus_crud.get_available_balance(referral.id)
+        withdrawable_balance = await self.referral_bonus_crud.get_available_balance(referral.id)
+        
+        total_balance = float(referral.user.bonus_balance)
 
         logger.info(
             "Get referral details",
             extra={
                 "user_id": user_id,
                 "referral_id": referral_id,
+                "total_balance": total_balance,
+                "withdrawable_balance": float(withdrawable_balance)
             },
         )
         return SReferral(
             id=referral.id,
             full_name=referral.user.full_name,
             current_month_orders=orders_count,
-            balance=float(balance),
+            total_balance=total_balance,
+            withdrawable_balance=float(withdrawable_balance),
             referral_bonus=referral_bonus,
             referrals_count=referrals_count,
             invite_link=await self.get_invite_link(referral_id=referral.id),
@@ -315,28 +342,32 @@ class ReferralService:
             "Creating a payout request",
             extra={"user_id": user_id, "data": data.model_dump()},
         )
-        referrer = await self.referral_crud.get_or_create(user_id=user_id)
-        balance = await self.referral_bonus_crud.get_available_balance(referrer.id)
 
-        if not referrer.is_registered:
-            raise HTTPException(
-                status_code=status.HTTP_417_EXPECTATION_FAILED,
-                detail="User is not registered in referral program",
-            )
-        if float(balance) < data.amount:
+        user = await self.referral_crud.get_or_create(user_id=user_id)
+
+        if user.user.bonus_balance < data.amount:
             raise HTTPException(
                 status_code=status.HTTP_417_EXPECTATION_FAILED,
                 detail="The user balance is not sufficient to create a payout request",
             )
 
-        return SReferralPayoutRequest.model_validate(
-            await self.payout_request_crud.create(
-                referrer_id=referrer.id,
-                bank_code=data.bank_code,
-                account_number=data.account_number,
-                amount=data.amount,
+        payment_details = user.user.payment_details
+        if not payment_details:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Payment details not set for the user",
             )
+
+        new_request = await self.payout_request_crud.create(
+            user_id=user_id,
+            amount=data.amount,
+            payment_details=payment_details,
         )
+
+        user.user.bonus_balance -= Decimal(data.amount)
+        await self.session.commit()
+
+        return SReferralPayoutRequest.model_validate(new_request, from_attributes=True)
 
     async def get_payout_requests(
         self,

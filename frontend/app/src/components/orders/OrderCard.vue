@@ -41,7 +41,7 @@ const { formatDeliveryDate } = useOrderFormatting();
       <div
         v-for="item in order.items"
         :key="item.id"
-        class="bb-order-card__row"
+        class="bb-order-card__row bb-order-card__item-row" 
       >
         <img
           :alt="item.product_name"
@@ -49,11 +49,11 @@ const { formatDeliveryDate } = useOrderFormatting();
           class="bb-order-card__image"
           @error="handleImageError"
         />
-        <div class="bb-order-card__quantity">{{ item.quantity }} шт.</div>
+        <div class="bb-order-card__item-info">
+            <span class="bb-order-card__item-name">{{ item.product_name }}</span>
+            <span class="bb-order-card__quantity">{{ item.quantity }} шт.</span>
+        </div>
         <div class="bb-order-card__payment">ОПЛАЧЕНО</div>
-        <!-- <div v-if="order.status === 'paid'" class="bb-order-card__payment">
-          ОПЛАЧЕНО
-        </div> -->
       </div>
     </div>
   </div>
@@ -61,4 +61,24 @@ const { formatDeliveryDate } = useOrderFormatting();
 
 <style>
 @import "@/assets/styles/order.css";
+.bb-order-card__item-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.bb-order-card__item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.bb-order-card__item-name {
+  font-size: 12px;
+  color: #252525;
+  font-weight: 500;
+  line-height: 1.2;
+}
 </style>

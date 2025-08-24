@@ -191,6 +191,17 @@ onUnmounted(() => {
         <span v-else-if="deliveryCost !== null">{{ formatPrice(deliveryCost) }}</span>
         <span v-else>Выберите адрес</span>
       </div>
+
+      <div v-if="checkoutStore.promoCode" class="checkout-total-amount promo-discount">
+        <span>Скидка по промокоду:</span>
+        <span>- {{ formatPrice((cart?.total || 0) * (checkoutStore.discountPercent / 100)) }}</span>
+      </div>
+
+    <div v-if="checkoutStore.userDiscountPercent > 0" class="checkout-total-amount personal-discount">
+      <span>Персональная скидка ({{ checkoutStore.userDiscountPercent }}%):</span>
+      <span>- {{ formatPrice((cart?.total || 0) * (checkoutStore.userDiscountPercent / 100)) }}</span>
+    </div>
+
       <div class="checkout-total-amount final-total">
         <span>Общая сумма заказа:</span>
         <span>{{ formatPrice(totalAmount) }}</span>
@@ -220,4 +231,10 @@ onUnmounted(() => {
 <style>
 @import "@/assets/styles/modal.css";
 @import "@/assets/styles/checkout.css";
+.promo-discount {
+  color: #66ca1a;
+}
+.personal-discount {
+  color: #66ca1a;
+}
 </style>

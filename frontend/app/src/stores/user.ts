@@ -75,15 +75,15 @@ export const useUserStore = defineStore("userData", () => {
   };
 
   const fetchMonthlyOrders = async () => {
-    try {
-      logger.info("Fetching user monthly orders amount");
-      const result = await apiClient.get<IUserMonthlyOrders>("/user/monthly-orders");
-      monthlyOrdersAmount.value = result.monthly_orders_amount ?? 0;
-    } catch (error) {
-      logger.error("Failed to fetch user monthly orders amount", { error });
-      throw error;
-    }
-  };
+        try {
+            logger.info("Fetching user monthly orders amount");
+            const result = await apiClient.get<IUserMonthlyOrders>("/user/monthly-orders");
+            monthlyOrdersAmount.value = result.monthly_orders_amount ?? 0;
+        } catch (error) {
+            logger.error("Failed to fetch user monthly orders amount", { error });
+            throw error;
+        }
+    };
 
   return {
     // state

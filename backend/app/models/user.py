@@ -1,4 +1,3 @@
-# backend/app/models/user.py
 import uuid
 from typing import List
 
@@ -9,6 +8,7 @@ from sqlalchemy import (
     Date,
     Enum,
     ForeignKey,
+    Numeric,
     String,
     Table,
 )
@@ -20,7 +20,6 @@ from app.core.constants import UserRoles
 from ..schemas.user import UserDiscountLevel
 from .base import Base
 
-# Связующая таблица для отношения many-to-many между пользователями и ролями
 user_roles = Table(
     "user_roles",
     Base.metadata,
@@ -41,7 +40,6 @@ class Role(Base):
     name = Column(String, unique=True, nullable=False)
     description = Column(String)
 
-    # Отношение к пользователям через связующую таблицу
     users = relationship(
         "User", secondary=user_roles, back_populates="roles", lazy="selectin"
     )
@@ -77,16 +75,32 @@ class User(Base):
     referral_code = Column(String, unique=True, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
 
+    invited_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    bonus_balance = Column(Numeric(10, 2), nullable=False, default=0.00)
+    monthly_spent = Column(Numeric(10, 2), nullable=False, default=0.00)
+    payment_details = Column(String, nullable=True)
+    accepted_terms = Column(Boolean, default=False)
+
     profile = relationship(
         "UserProfile",
         back_populates="user",
         lazy="joined",
+        cascade="all, delete-orphan",
     )
     discount = relationship(
         "UserDiscount",
         back_populates="user",
         lazy="joined",
+        cascade="all, delete-orphan",
     )
+    referral = relationship(
+        "Referral", back_populates="user", cascade="all, delete-orphan", uselist=False
+    )
+    payout_requests = relationship(
+        "PayoutRequest", back_populates="user", cascade="all, delete-orphan"
+    )
+
+    invited_by = relationship("User", remote_side=[id], backref="referrals")
 
     @property
     def role_names(self) -> List[str]:
@@ -98,12 +112,11 @@ class User(Base):
         """
         return [role.name for role in self.roles]
 
-    # Изменяем отношение, добавляя lazy="selectin"
     roles = relationship(
         "Role",
         secondary=user_roles,
         back_populates="users",
-        lazy="selectin",  # Это изменение решит проблему
+        lazy="selectin",
     )
 
     def has_role(self, role_name: str) -> bool:
@@ -129,9 +142,7 @@ class UserProfile(Base):
     __tablename__ = "user_profiles"
 
     user_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        primary_key=True,
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
     full_name = Column(String, nullable=True)
     phone_number = Column(String, nullable=True)
@@ -144,12 +155,10 @@ class UserDiscount(Base):
     __tablename__ = "user_discounts"
 
     user_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        primary_key=True,
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
     current_level = Column(
-        Enum(UserDiscountLevel),
+        Enum(UserDiscountLevel, name="userdiscountlevel"),
         nullable=False,
         default=UserDiscountLevel.NONE,
     )

@@ -5,6 +5,7 @@ import { DeliveryMethod, PaymentMethod } from "@/types/order";
 import type { IUserDeliveryPoint, IUserAddress } from "@/types/order";
 import { orderService } from "@/services/orderService";
 import { logger } from "@/utils/logger";
+import { useUserStore } from "@/stores/user";
 import { useNotification } from "@/composables/useNotification";
 
 // Константы для ключей localStorage
@@ -27,6 +28,8 @@ export const useCheckoutStore = defineStore("checkout", () => {
   const deliveryCost = ref<number | null>(null);
   const isCalculatingDelivery = ref(false);
   const { showNotification } = useNotification();
+  const userStore = useUserStore();
+  const userDiscountPercent = computed(() => userStore.discount?.current_percent || 0);
 
   const setPromoCode = (code: string | null, discount: number) => {
       promoCode.value = code;
@@ -260,6 +263,7 @@ export const useCheckoutStore = defineStore("checkout", () => {
     // Вычисляемые свойства
     canProceed,
     getDeliveryData,
+    userDiscountPercent,
 
     // Методы
     setDeliveryMethod,
