@@ -18,6 +18,7 @@ export function useCheckout() {
   const { showNotification } = useNotification();
   const { initiateWidgetPayment } = usePayment();
   const { promoCode } = storeToRefs(checkoutStore);
+  const { deliveryCost } = storeToRefs(checkoutStore);
 
   // Получаем реактивные ссылки на состояния из сторов
   const {
@@ -41,7 +42,11 @@ export function useCheckout() {
   // Вычисляемые свойства
   const canPay = computed(() => checkoutStore.canProceed);
 
-  const totalAmount = computed(() => cart.value?.total || 0);
+  const totalAmount = computed(() => {
+      const cartTotal = cart.value?.total || 0;
+      const delivery = deliveryCost.value || 0;
+      return cartTotal + delivery;
+  });
 
   const getDeliveryData = computed(() => {
     const isPickupSelected = currentDeliveryMethod.value === DeliveryMethod.PICKUP;
@@ -158,20 +163,19 @@ export function useCheckout() {
 
       logger.info("Processing payment and creating order", { orderData });
 
+
+      logger.info("Processing payment and creating order", { orderData });
+
       // Создаем заказ
       const order = await createOrder(orderData);
-
-      logger.info("Order created successfully, initializing payment", {
-        orderId: order.id,
-      });
+      logger.info("Order created successfully, initializing payment", { orderId: order.id });
 
       // Инициируем платеж через виджет ЮКассы
       const paymentCreated = await initiateWidgetPayment(order.id, PAYMENT_PROVIDERS.YOOKASSA);
 
       // Деактивируем оверлей загрузки после получения ответа
-      isPaymentProcessing.value = false;
-
       if (!paymentCreated) {
+        isPaymentProcessing.value = false;
         logger.error("Failed to create payment after order creation", {
           orderId: order.id,
         });
@@ -217,6 +221,7 @@ export function useCheckout() {
     error,
     canPay,
     totalAmount,
+    deliveryCost,
     isPaymentProcessing,
 
     // Вычисляемые свойства

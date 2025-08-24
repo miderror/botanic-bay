@@ -3,6 +3,7 @@ import type { UUID } from "@/types/common.ts";
 import type { ICreateOrder, IOrder, IPaymentMethod, IUserAddress, IUserDeliveryPoint } from "@/types/order";
 import { PaymentMethod } from "@/types/order";
 import { logger } from "@/utils/logger";
+import type { TariffCode } from "@/types/cdek";
 import { apiClient } from "./httpClient";
 
 export class OrderService {
@@ -149,6 +150,16 @@ export class OrderService {
       },
     ];
   }
+
+  async calculateDelivery(deliveryData: ICreateOrder): Promise<TariffCode | null> {
+        try {
+            logger.info("Calculating delivery cost", { deliveryData });
+            return await apiClient.post<TariffCode | null>("/orders/calculate-delivery", deliveryData);
+        } catch (error) {
+            logger.error("Failed to calculate delivery cost", { error });
+            return null;
+        }
+    }
 }
 
 export const orderService = new OrderService();

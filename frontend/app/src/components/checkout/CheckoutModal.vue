@@ -31,12 +31,14 @@ const { showNotification } = useNotification();
 const { cart } = useCart();
 const {
   canPay,
-  totalAmount,
   startCheckout,
   finishCheckout,
   setPaymentMethod,
   processPayment,
   isPaymentProcessing,
+  totalAmount,
+  deliveryCost,
+  isCalculatingDelivery,
 } = useCheckout();
 
 /**
@@ -180,6 +182,16 @@ onUnmounted(() => {
 
       <!-- Итоговая сумма -->
       <div class="checkout-total-amount">
+        <span>Стоимость товаров:</span>
+        <span>{{ formatPrice(cart?.total || 0) }}</span>
+      </div>
+      <div class="checkout-total-amount">
+        <span>Доставка:</span>
+        <span v-if="isCalculatingDelivery">Расчет...</span>
+        <span v-else-if="deliveryCost !== null">{{ formatPrice(deliveryCost) }}</span>
+        <span v-else>Выберите адрес</span>
+      </div>
+      <div class="checkout-total-amount final-total">
         <span>Общая сумма заказа:</span>
         <span>{{ formatPrice(totalAmount) }}</span>
       </div>

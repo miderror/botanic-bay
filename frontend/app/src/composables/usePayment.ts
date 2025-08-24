@@ -12,11 +12,13 @@ import type { IPaymentResult, IPaymentStatus } from "@/types/payment";
 import { logger } from "@/utils/logger";
 import { computed, onUnmounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
+import { useCheckoutStore } from "@/stores/checkout";
 
 export function usePayment() {
   const router = useRouter();
   const { showNotification } = useNotification();
   const cartStore = useCartStore(); // Инициализируем cartStore
+  const checkoutStore = useCheckoutStore();
 
   // Состояние
   const isLoading = ref(false);
@@ -181,7 +183,12 @@ export function usePayment() {
       }
 
       // Проверяем статус платежа
-      return await checkPaymentStatus(paymentId);
+      const result = await checkPaymentStatus(paymentId);
+      if (result.isSuccessful) {
+        clearStoredPaymentId();
+    }
+
+    return result; 
     } catch (err) {
       const message = err instanceof Error ? err.message : "Ошибка при обработке возврата после оплаты";
       error.value = message;
@@ -191,7 +198,7 @@ export function usePayment() {
       return {
         status: "failed",
         orderId: "",
-        paymentId: "",
+        paymentId: getStoredPaymentId() || "",
         isSuccessful: false,
         error: message,
       };
@@ -260,154 +267,48 @@ export function usePayment() {
       throw new Error("YooKassa widget script not loaded");
     }
 
-    logger.info("Initializing YooKassa widget", { token });
+    logger.info("Initializing YooKassa widget", { token, returnUrl });
 
-    // Создаем экземпляр виджета
     const checkout = new window.YooMoneyCheckoutWidget({
       confirmation_token: token,
+      return_url: returnUrl, // Убедимся, что return_url передается
       customization: {
-        modal: true, // Используем нативное модальное окно виджета
-        // payment_methods: ['bank_card'],
+        modal: true,
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       error_callback: function (error: any) {
         logger.error("YooKassa widget error", { error });
-        error.value = error instanceof Error ? error.message : "Ошибка виджета ЮКассы";
         handleWidgetError(error);
       },
     });
 
-    // Устанавливаем обработчики событий
     setupWidgetEventHandlers(checkout, returnUrl);
-
     return checkout;
   };
 
   // Настройка обработчиков событий виджета
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const setupWidgetEventHandlers = (checkout: any, returnUrl: string) => {
-    // Извлекаем orderId из returnUrl
     const orderId = extractOrderIdFromUrl(returnUrl) || "";
 
-    // Функция для навигации на страницу заказов
-    const navigateToOrders = () => {
-      window.history.pushState({}, "", "/profile/orders");
-
-      // Генерируем событие для уведомления Vue о завершении платежа
-      window.dispatchEvent(
-        new CustomEvent("payment-completed", {
-          detail: {
-            success: true,
-            orderId,
-          },
-        }),
-      );
+    const navigateToResult = (success: boolean) => {
+        router.replace({ 
+            name: "payment-result", 
+            params: { orderId },
+            query: { status: success ? 'success' : 'fail' } 
+        });
     };
 
-    // Обработчик успешной оплаты
     checkout.on("success", async () => {
       logger.info("YooKassa widget success event", { orderId });
-
-      // Получаем paymentId из localStorage
-      const paymentId = getStoredPaymentId();
-
-      try {
-        if (paymentId) {
-          // Проверяем статус платежа
-          const status = await paymentService.checkPaymentStatus(paymentId);
-
-          logger.info("Payment status after success event", {
-            paymentId,
-            status: status.status,
-          });
-
-          // Если платеж успешен, показываем уведомление
-          if (status.status === PAYMENT_STATUSES.SUCCEEDED) {
-            showNotification("Оплата успешно завершена!", "success");
-
-            // Очищаем хранилище
-            clearStoredPaymentId();
-            try {
-              localStorage.removeItem("currentOrderId");
-            } catch (e) {
-              logger.warn("Could not remove orderId from localStorage", { error: e });
-            }
-
-            // Очищаем корзину только при успешной оплате
-            try {
-              await cartStore.clearCart();
-              logger.info("Cart cleared after successful payment");
-            } catch (cartError) {
-              logger.error("Failed to clear cart after successful payment", { error: cartError });
-            }
-          }
-        }
-
-        // Перенаправляем на страницу заказов
-        navigateToOrders();
-      } catch (error) {
-        logger.error("Error checking payment status after success", { error });
-
-        // В случае ошибки тоже перенаправляем
-        navigateToOrders();
-      } finally {
-        // Закрываем виджет и очищаем состояние
-        closeWidget();
-      }
+      closeWidget();
+      navigateToResult(true);
     });
 
-    // Обработчик неудачной оплаты
     checkout.on("fail", () => {
-      logger.info("YooKassa widget fail event", { orderId });
-
-      // Показываем уведомление
-      showNotification("Оплата не завершена или была отменена", "warning");
-
-      // Перенаправляем на страницу заказов
-      navigateToOrders();
-
-      // Закрываем виджет и очищаем состояние
+      logger.warn("YooKassa widget fail event", { orderId });
       closeWidget();
+      navigateToResult(false);
     });
-
-    // Обработчик закрытия модального окна
-    checkout.on("modal_close", async () => {
-      logger.info("YooKassa widget modal_close event", { returnUrl, orderId });
-
-      try {
-        // Получаем orderId из returnUrl
-        if (orderId) {
-          // Вызываем API для отмены заказа
-          await orderService.cancelOrder(orderId);
-          logger.info("Order cancelled after widget close", { orderId });
-          showNotification("Оплата отменена", "info");
-
-          // После отмены заказа обновляем корзину
-          try {
-            await cartStore.fetchCart();
-            logger.info("Cart refreshed after order cancellation");
-          } catch (cartError) {
-            logger.error("Failed to refresh cart after order cancellation", { error: cartError });
-          }
-        }
-      } catch (error) {
-        logger.error("Failed to cancel order after widget close", { error, returnUrl });
-        showNotification("Оплата отменена", "info");
-      }
-
-      // Перенаправляем на страницу заказов
-      // navigateToOrders()
-
-      // Закрываем виджет и очищаем состояние
-      closeWidget();
-    });
-
-    // Общий обработчик завершения
-    checkout.on("complete", () => {
-      logger.info("YooKassa widget complete event");
-      // Здесь только закрываем виджет, т.к. остальная логика уже в success/fail
-      closeWidget();
-    });
+    
   };
 
   // Открытие виджета ЮКассы
@@ -424,6 +325,8 @@ export function usePayment() {
       // Рендерим виджет
       await widgetState.widgetInstance.render();
 
+      checkoutStore.isPaymentProcessing = false;
+
       logger.info("YooKassa widget rendered successfully");
 
       // Находим iframe с виджетом ЮКассы и добавляем ему атрибуты разрешений
@@ -438,6 +341,7 @@ export function usePayment() {
       widgetState.isInitializing = false;
     } catch (error) {
       widgetState.isInitializing = false;
+      checkoutStore.isPaymentProcessing = false;
       logger.error("YooKassa widget render error", { error });
 
       // Показываем ошибку пользователю
@@ -460,7 +364,9 @@ export function usePayment() {
       widgetState.isOpen = false;
       widgetState.confirmationToken = "";
       widgetState.returnUrl = "";
-
+      
+      checkoutStore.isPaymentProcessing = false;
+      
       logger.debug("Widget closed and state reset");
     } catch (error) {
       logger.error("Error closing widget", { error });
@@ -478,13 +384,10 @@ export function usePayment() {
 
       logger.info("Initiating widget payment", { orderId, provider });
 
-      // Формируем правильный URL возврата с разделителем между path и id
       const returnUrl = `${window.location.origin}${PAYMENT_RETURN_URL_PATH}/${orderId}`;
 
-      // Создаем платеж через API с типом embedded
       const payment = await paymentService.createWidgetPayment(orderId, provider);
 
-      // Сохраняем ID платежа
       storePaymentId(payment.payment_id);
 
       logger.info("Payment created, opening widget", {
@@ -492,11 +395,9 @@ export function usePayment() {
         hasToken: !!payment.confirmation_token,
       });
 
-      // Устанавливаем данные для виджета
       widgetState.confirmationToken = payment.confirmation_token;
       widgetState.returnUrl = returnUrl;
 
-      // Открываем виджет
       await openYookassaWidget(payment.confirmation_token, returnUrl);
       return true;
     } catch (err) {

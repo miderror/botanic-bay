@@ -99,6 +99,8 @@ class Order(Base):
     # Дата планируемой отгрузки
     planned_shipping_date = Column(DateTime(timezone=True), nullable=True)
 
+    track_number = Column(String, nullable=True, comment="Трек-номер СДЭК")
+
     # Связи с другими таблицами
     items = relationship(
         "OrderItem", back_populates="order", cascade="all, delete-orphan"

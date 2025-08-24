@@ -73,3 +73,12 @@ export interface IDeliveryPointSearchResult {
   work_time: string;
   office_type: string;
 }
+
+export interface TariffCode {
+  tariff_code: number;
+  tariff_name: string;
+  delivery_mode: number;
+  delivery_sum: number;
+  period_min: number;
+  period_max: number;
+}

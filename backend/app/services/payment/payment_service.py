@@ -430,89 +430,97 @@ class PaymentService:
             )
 
     async def _process_successful_payment(self, payment: Payment) -> None:
-        """
-        Обработка успешного платежа
-
-        Args:
-            payment: Объект платежа
-        """
-        # Импортируем необходимые классы
+        """Обработка успешного платежа"""
         from sqlalchemy import update
-
-        from app.core.constants import PaymentStatuses
         from app.models.order import Order
         from app.models.order_status import OrderStatus
+        from app.models.user import User
 
-        # Получаем заказ
         order = await self.order_crud.get_order(payment.order_id)
         if not order:
             logger.error(
                 "Order not found for successful payment",
-                extra={
-                    "payment_id": str(payment.id),
-                    "order_id": str(payment.order_id),
-                },
+                extra={"payment_id": str(payment.id)},
             )
             return
 
-        # Обновляем статус заказа только если он еще не оплачен
-        if order.status == OrderStatus.PENDING.value:
-            # Прямое обновление в БД статуса оплаты и статуса заказа
-            query = (
-                update(Order)
-                .where(Order.id == order.id)
-                .values(
-                    status=OrderStatus.PAID.value,
-                    payment_status=PaymentStatuses.SUCCEEDED.value,
-                )
+        if order.status == OrderStatus.PAID.value:
+            logger.info(
+                "Order already marked as paid, skipping processing.",
+                extra={"order_id": str(order.id)},
             )
-            await self.session.execute(query)
-            await self.session.commit()
+            return
 
-            try:
-                await self.discount_service.on_order_paid(order.user_id, order.id)
-            except Exception as e:
-                logger.error(
-                    "Failed to update user discount",
-                    extra={"order_id": order.id, "error": str(e)},
-                )
+        order.status = OrderStatus.PAID.value
+        order.payment_status = PaymentStatus.SUCCEEDED.value
+        await self.session.commit()
 
-            # После успешной оплаты деактивируем корзину пользователя
-            try:
-                # Импортируем CartCRUD здесь, чтобы избежать циклических импортов
-                from app.crud.cart import CartCRUD
+        logger.info("Order status updated to PAID", extra={"order_id": str(order.id)})
 
-                cart_crud = CartCRUD(self.session)
+        try:
+            cdek_service = await get_cdek_service(self.session)
+            user_crud = UserCRUD(self.session)
+            user = await user_crud.get_by_id(
+                order.user_id
+            )
 
-                # Находим активную корзину пользователя
-                user_id = order.user_id
-                cart = await cart_crud.get_active_cart(user_id)
-
-                if cart:
-                    # Деактивируем корзину
-                    await cart_crud.deactivate_cart(cart.id)
+            if user:
+                cdek_response = await cdek_service.create_cdek_order(order, user)
+                if cdek_response and cdek_response.get("cdek_uuid"):
+                    order.track_number = cdek_response.get(
+                        "track_number"
+                    ) or cdek_response.get("cdek_uuid")
+                    await self.session.commit()
                     logger.info(
-                        "Cart deactivated after successful payment",
+                        "Saved CDEK track number to order",
                         extra={
-                            "user_id": str(user_id),
-                            "cart_id": str(cart.id),
                             "order_id": str(order.id),
+                            "track_number": order.track_number,
                         },
                     )
-            except Exception as e:
+                else:
+                    logger.error(
+                        "Failed to get track number from CDEK",
+                        extra={"order_id": str(order.id)},
+                    )
+            else:
                 logger.error(
-                    "Failed to deactivate cart after successful payment",
-                    extra={"order_id": str(order.id), "error": str(e)},
+                    "User not found for CDEK order creation",
+                    extra={"user_id": str(order.user_id)},
                 )
 
-            logger.info(
-                "Order status and payment status updated to paid/succeeded",
-                extra={
-                    "order_id": str(order.id),
-                    "payment_id": str(payment.id),
-                    "status": OrderStatus.PAID.value,
-                    "payment_status": PaymentStatuses.SUCCEEDED.value,
-                },
+        except Exception as e:
+            logger.error(
+                "Failed to create CDEK order after payment",
+                extra={"order_id": str(order.id), "error": str(e)},
+                exc_info=True,
+            )
+
+        # ... здесь будет вызов referral_service ...
+
+        try:
+            await self.discount_service.on_order_paid(order.user_id, order.id)
+        except Exception as e:
+            logger.error(
+                "Failed to update user discount",
+                extra={"order_id": str(order.id), "error": str(e)},
+            )
+
+        try:
+            from app.crud.cart import CartCRUD
+
+            cart_crud = CartCRUD(self.session)
+            cart = await cart_crud.get_active_cart(order.user_id)
+            if cart:
+                await cart_crud.deactivate_cart(cart.id)
+                logger.info(
+                    "Cart deactivated after successful payment",
+                    extra={"cart_id": str(cart.id)},
+                )
+        except Exception as e:
+            logger.error(
+                "Failed to deactivate cart",
+                extra={"order_id": str(order.id), "error": str(e)},
             )
 
     async def _process_failed_payment(self, payment: Payment) -> None:

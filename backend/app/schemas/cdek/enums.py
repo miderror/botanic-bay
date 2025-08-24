@@ -37,6 +37,8 @@ class DeliveryMode(int, Enum):
     DOOR_TO_WAREHOUSE = 2
     WAREHOUSE_TO_DOOR = 3
     WAREHOUSE_TO_WAREHOUSE = 4
+    WAREHOUSE_TO_POSTAMAT = 6
+    DOOR_TO_POSTAMAT = 7
 
 
 class RequestType(UpperStrEnum):

@@ -26,6 +26,10 @@ class SProductBase(BaseModel):
     background_image_url: Optional[str] = Field(
         None, description="URL фоновой картинки товара"
     )
+    weight: Optional[int] = Field(None, description="Вес в граммах", ge=0)
+    length: Optional[int] = Field(None, description="Длина в мм", ge=0)
+    width: Optional[int] = Field(None, description="Ширина в мм", ge=0)
+    height: Optional[int] = Field(None, description="Высота в мм", ge=0)
 
     additional_images_urls: Optional[List[str]] = Field(
         default_factory=list, description="Список URL дополнительных изображений товара"

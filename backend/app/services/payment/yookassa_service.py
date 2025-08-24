@@ -161,35 +161,37 @@ class YookassaService(IPaymentProvider):
         """
         items = []
 
-        # Добавляем позиции заказа
+        promo_discount = order.discount_amount or Decimal("0")
+        
         for item in order.items:
+            item_price = Decimal(item.price)
+            item_subtotal = item_price * item.quantity
+            
+            item_share = item_subtotal / Decimal(order.subtotal) if Decimal(order.subtotal) > 0 else Decimal(0)
+            
+            item_discount = (promo_discount * item_share).quantize(Decimal("0.01"))
+            
+            price_with_discount = item_price - (item_discount / item.quantity)
+
             item_data = {
-                "description": item.product_name[:128],  # Ограничение ЮКассы
+                "description": item.product_name[:128],
                 "quantity": str(item.quantity),
-                "amount": {"value": str(item.price), "currency": "RUB"},
-                "vat_code": "1",  # НДС 20%
-                "payment_subject": "commodity",  # Товар
-                "payment_mode": "full_payment",  # Полная оплата
+                "amount": {"value": str(price_with_discount.quantize(Decimal("0.01"))), "currency": "RUB"},
+                "vat_code": "1",
+                "payment_subject": "commodity",
+                "payment_mode": "full_prepayment",
             }
-
-            # Добавляем артикул товара, если он есть
-            if hasattr(item.product, "sku") and item.product.sku:
-                item_data["product_code"] = item.product.sku
-
             items.append(item_data)
 
-        # Добавляем доставку, если она есть
-        if order.delivery_cost and float(order.delivery_cost) > 0:
-            items.append(
-                {
-                    "description": f"Доставка ({order.delivery_method})",
-                    "quantity": "1.0",
-                    "amount": {"value": str(order.delivery_cost), "currency": "RUB"},
-                    "vat_code": "1",  # НДС 20%
-                    "payment_subject": "service",  # Услуга
-                    "payment_mode": "full_payment",  # Полная оплата
-                }
-            )
+        if order.delivery_cost and Decimal(order.delivery_cost) > 0:
+            items.append({
+                "description": f"Доставка ({order.delivery_method})",
+                "quantity": "1.0",
+                "amount": {"value": str(order.delivery_cost), "currency": "RUB"},
+                "vat_code": "1",
+                "payment_subject": "service",
+                "payment_mode": "full_prepayment",
+            })
 
         # Получаем email пользователя для чека
         # Сначала пытаемся получить email из модели пользователя

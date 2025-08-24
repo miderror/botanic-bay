@@ -392,6 +392,7 @@ const onLocationRequest = (location?: LocationData | null) => {
     :modelValue="isOpen"
     @update:modelValue="$emit('close')"
     fullscreen
+    content-class="location-selector-modal"
   >
     <NotificationToast
       :show="show"
@@ -422,67 +423,87 @@ const onLocationRequest = (location?: LocationData | null) => {
       @closeParentModal="$emit('close')"
     />
 
-    <yandex-map
-      v-model="map"
-      :settings="{
-        location: {
-          ...initialPoint,
-          duration: 2500,
-        },
-        behaviors: ['drag', 'scrollZoom', 'pinchZoom', 'magnifier', 'dblClick'],
-      }"
-      width="100%"
-      height="100%"
-    >
-      <!-- Основной слой карты -->
-      <yandex-map-default-scheme-layer />
-      <yandex-map-default-features-layer />
+    <div class="map-container">
+      {{ console.log('Rendering yandex-map component. IsOpen:', isOpen, 'CurrentMethod:', currentMethod) }}
+      <yandex-map
+        v-model="map"
+        :settings="{
+          location: {
+            ...initialPoint,
+            duration: 2500,
+          },
+          behaviors: ['drag', 'scrollZoom', 'pinchZoom', 'magnifier', 'dblClick'],
+        }"
+        width="100%"
+        height="100%"
+        @created="onMapInitialized"
+        @error="onMapError"
+      >
+        <!-- Основной слой карты -->
+        <yandex-map-default-scheme-layer />
+        <yandex-map-default-features-layer />
 
-      <!-- Слушатель событий карты -->
-      <yandex-map-listener :settings="listenerSettings" />
+        <!-- Слушатель событий карты -->
+        <yandex-map-listener :settings="listenerSettings" />
 
-      <!-- Отрисовка маркеров для ПВЗ/постаматов -->
-      <div v-if="currentMethod === DeliveryMethod.PICKUP">
-        <yandex-map-marker
-          v-for="(point, index) in visiblePoints"
-          :key="point.uuid || index"
-          :settings="{
-            coordinates: [point.location.longitude, point.location.latitude],
-            onClick: () => selectPickupPoint(point),
-          }"
-          position="top left-center"
-        >
-          <img
-            :src="CdekPointIcon"
-            class="marker"
-            alt="V"
-          />
-        </yandex-map-marker>
-      </div>
+        <!-- Отрисовка маркеров для ПВЗ/постаматов -->
+        <div v-if="currentMethod === DeliveryMethod.PICKUP">
+          <yandex-map-marker
+            v-for="(point, index) in visiblePoints"
+            :key="point.uuid || index"
+            :settings="{
+              coordinates: [point.location.longitude, point.location.latitude],
+              onClick: () => selectPickupPoint(point),
+            }"
+            position="top left-center"
+          >
+            <img
+              :src="CdekPointIcon"
+              class="marker"
+              alt="V"
+            />
+          </yandex-map-marker>
+        </div>
 
-      <!-- Если выбран произвольный адрес, можно отобразить маркер -->
-      <div v-if="currentMethod === DeliveryMethod.COURIER">
-        <yandex-map-marker
-          v-if="
-            selectedMapCustomPoint &&
-            Array.isArray(selectedMapCustomPoint) &&
-            selectedMapCustomPoint.length === 2
-          "
-          :settings="{ coordinates: selectedMapCustomPoint }"
-          position="top left-center"
-        >
-          <img
-            :src="PointIcon"
-            class="marker"
-            alt="V"
-          />
-        </yandex-map-marker>
-      </div>
-    </yandex-map>
+        <!-- Если выбран произвольный адрес, можно отобразить маркер -->
+        <div v-if="currentMethod === DeliveryMethod.COURIER">
+          <yandex-map-marker
+            v-if="
+              selectedMapCustomPoint &&
+              Array.isArray(selectedMapCustomPoint) &&
+              selectedMapCustomPoint.length === 2
+            "
+            :settings="{ coordinates: selectedMapCustomPoint }"
+            position="top left-center"
+          >
+            <img
+              :src="PointIcon"
+              class="marker"
+              alt="V"
+            />
+          </yandex-map-marker>
+        </div>
+      </yandex-map>
+    </div>
   </BaseModal>
 </template>
 
 <style scoped>
+.map-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+:deep(.modal-search-location-content),
+:deep(.modal-location-content) {
+  position: relative;
+  z-index: 10;
+}
+
 .marker {
   width: 36px !important;
   height: 36px !important;
@@ -495,12 +516,10 @@ const onLocationRequest = (location?: LocationData | null) => {
   display: block;
   object-fit: contain;
 }
-
 .marker:active,
 .marker:hover {
   transform: scale(1.2);
 }
-
 .location-selector-notification {
   left: 50%;
   transform: translateX(-50%);

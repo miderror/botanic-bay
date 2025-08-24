@@ -74,38 +74,33 @@ class OrderService:
         delivery_point_id: UUID = None,
         address_id: UUID = None,
     ) -> dict[str, Any]:
-        delivery_info = {"delivery_cost": 0, "delivery_tariff_code": 777}
+        delivery_info = {"delivery_cost": 0, "delivery_tariff_code": 0}
 
         cheapest_tariff = await self.cdek_service.calculate_cheapest_tariff(
             items,
             user_delivery_point_id=delivery_point_id,
             user_address_id=address_id,
         )
-        delivery_point = await self.user_delivery_point_crud.get_or_none(
-            point_id=delivery_point_id,
-        )
-        address = await self.user_address_crud.get_or_none(
-            address_id=address_id,
-        )
 
-        print(f"point", delivery_point_id, delivery_point)
-        print(f"address", address_id, address)
+        delivery_info["delivery_cost"] = cheapest_tariff.delivery_sum
+        delivery_info["delivery_tariff_code"] = cheapest_tariff.tariff_code
 
-        if delivery_point:
-            delivery_info["delivery_point"] = delivery_point.cdek_delivery_point.code
+        if delivery_point_id:
+            point = await self.user_delivery_point_crud.get_or_none(point_id=delivery_point_id)
+            if point and point.cdek_delivery_point:
+                delivery_info["delivery_point"] = point.cdek_delivery_point.code
+                logger.debug("Added pickup point code to delivery info", extra={"code": point.cdek_delivery_point.code})
+        elif address_id:
+            address = await self.user_address_crud.get_or_none(address_id=address_id)
+            if address:
+                delivery_info["delivery_to_location"] = RequestLocation.model_validate(
+                    address,
+                    from_attributes=True,
+                )
+                delivery_info["delivery_comment"] = self._get_delivery_comment(address)
+                logger.debug("Added courier address to delivery info", extra={"address": address.address})
 
-        if address:
-            delivery_info["delivery_to_location"] = RequestLocation.model_validate(
-                address,
-                from_attributes=True,
-            )
-            delivery_info["delivery_comment"] = self._get_delivery_comment(address)
-
-        if cheapest_tariff:
-            delivery_info["delivery_tariff_code"] = cheapest_tariff.tariff_code
-            delivery_info["delivery_cost"] = cheapest_tariff.delivery_sum
-
-        print(delivery_info)
+        logger.info("Final delivery info", extra=delivery_info)
         return delivery_info
 
     async def create_order(
@@ -126,7 +121,6 @@ class OrderService:
         Raises:
             HTTPException: При ошибке создания заказа
         """
-        # Получаем активную корзину пользователя
         cart = await self.cart_crud.get_active_cart(user_id)
         if not cart:
             raise HTTPException(
@@ -170,7 +164,6 @@ class OrderService:
                 user_id
             )
 
-            # Создаем заказ
             order = await self.order_crud.create_from_cart(
                 cart=cart,
                 promo_discount=promo_discount,
@@ -221,7 +214,6 @@ class OrderService:
         Raises:
             HTTPException: Если заказ не найден или не может быть отменен
         """
-        # Получаем заказ
         order = await self.order_crud.get_order(order_id)
 
         if not order:
@@ -233,7 +225,6 @@ class OrderService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Order not found"
             )
 
-        # Проверяем, принадлежит ли заказ пользователю
         if str(order.user_id) != str(user_id) and not await self.is_admin(user_id):
             logger.warning(
                 "User is not authorized to cancel this order",
@@ -244,7 +235,6 @@ class OrderService:
                 detail="Not authorized to cancel this order",
             )
 
-        # Проверяем статус заказа
         if order.status not in ["pending", "processing", "created"]:
             logger.warning(
                 "Cannot cancel order with status",
@@ -255,23 +245,16 @@ class OrderService:
                 detail=f"Cannot cancel order with status '{order.status}'",
             )
 
-        # Обновляем статус заказа
         updated_order = await self.order_crud.update_status(order_id, "cancelled")
 
-        # Вместо прямого обращения к order.payments, делаем отдельный запрос
-        # для получения платежей, связанных с заказом
         try:
-            # Импортируем здесь, чтобы избежать циклических импортов
             from app.crud.payment import PaymentCRUD
             from app.schemas.payment import SPaymentUpdate
 
-            # Создаем экземпляр PaymentCRUD
             payment_crud = PaymentCRUD(self.session)
 
-            # Запрашиваем платежи по ID заказа
             payments = await payment_crud.get_order_payments(order_id)
 
-            # Отменяем платежи в статусах, которые можно отменить
             for payment in payments:
                 if payment.status not in ["succeeded", "refunded", "canceled"]:
                     try:
@@ -295,7 +278,6 @@ class OrderService:
                             },
                         )
         except Exception as e:
-            # Логируем ошибку, но не прерываем выполнение функции
             logger.error(
                 "Failed to process payments cancellation",
                 extra={"order_id": str(order_id), "error": str(e)},
@@ -355,7 +337,6 @@ class OrderService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Order not found"
             )
 
-        # Проверяем доступ если указан user_id
         if user_id and order.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
@@ -391,7 +372,6 @@ class OrderService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Order not found"
             )
 
-        # Проверяем возможность обновления статуса
         if not admin and data.status not in self._get_allowed_status_transitions(
             order.status
         ):
@@ -449,14 +429,13 @@ class OrderService:
         Returns:
             List[str]: Список разрешенных статусов
         """
-        # Определяем разрешенные переходы статусов
         transitions = {
             "pending": ["cancelled"],
             "paid": ["processing", "cancelled"],
             "processing": ["shipped", "cancelled"],
             "shipped": ["delivered", "cancelled"],
-            "delivered": [],  # Финальный статус
-            "cancelled": [],  # Финальный статус
+            "delivered": [],
+            "cancelled": [],
         }
 
         return transitions.get(current_status, [])
@@ -470,8 +449,6 @@ class OrderService:
 
         for order in orders:
             try:
-                # TODO: Здесь должна быть интеграция со складом
-                # Пока просто меняем статус
                 await self.update_order_status(
                     order.id, SUpdateOrderStatus(status="shipped"), admin=True
                 )
@@ -526,7 +503,6 @@ class OrderService:
                 detail="Error while removing user delivery point",
             )
 
-    # MARK: User Address
     async def save_user_address(
         self,
         user: User,
@@ -555,7 +531,6 @@ class OrderService:
     ) -> SUserAddress:
         """Обновляет дополнительные поля существующего адреса пользователя.
         Проверяет, что адрес принадлежит указанному пользователю."""
-        # Проверяем, что адрес принадлежит пользователю
         existing_address = await self.user_address_crud.get_or_none(
             user_id=user_id, address_id=address_id
         )
@@ -565,7 +540,6 @@ class OrderService:
                 detail="User address not found",
             )
 
-        # Обновляем адрес пользователя
         try:
             updated_address = await self.user_address_crud.update(
                 address_id=address_id,

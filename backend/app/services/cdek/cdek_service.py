@@ -1,6 +1,8 @@
+from http.client import HTTPException
 from types import SimpleNamespace
 from uuid import UUID
 
+from fastapi import status
 from geopy.point import Point
 from pydantic import TypeAdapter
 
@@ -8,12 +10,13 @@ from app.core.logger import logger
 from app.core.settings import settings
 from app.crud.user_address import UserAddressCRUD
 from app.crud.user_delivery_point import UserDeliveryPointCRUD
-from app.models import CartItem, User, UserAddress
+from app.models import CartItem, Order, User, UserAddress
 from app.schemas.cdek.base import (
     CalculatorLocation,
     CalculatorPackage,
     Contact,
     Phone,
+    RequestLocation,
     TariffCode,
 )
 from app.schemas.cdek.enums import DeliveryMode, RequestState, RequestType, WebhookType
@@ -147,62 +150,198 @@ class CDEKService:
         items: list[CartItem],
         user_address_id: UUID | None = None,
         user_delivery_point_id: UUID | None = None,
-    ) -> TariffCode | None:
+    ) -> TariffCode:
         if not user_address_id and not user_delivery_point_id:
-            return None
+            raise HTTPException(status_code=400, detail="Delivery address or point must be provided")
 
-        delivery_mode = DeliveryMode.DOOR_TO_WAREHOUSE
-        additional_order_types = [7]
-        address: str = ""
+        to_location_data = {}
+        expected_delivery_mode: DeliveryMode
 
-        user_address = await self.user_address_crud.get_or_none(
-            address_id=user_address_id,
+        if user_delivery_point_id:
+            user_delivery_point = await self.user_delivery_point_crud.get_or_none(
+                point_id=user_delivery_point_id,
+            )
+            if not user_delivery_point or not user_delivery_point.cdek_delivery_point:
+                raise HTTPException(status_code=404, detail="Delivery point not found")
+            
+            to_location_data = {"address": user_delivery_point.cdek_delivery_point.address}
+            expected_delivery_mode = DeliveryMode.WAREHOUSE_TO_WAREHOUSE
+        
+        elif user_address_id:
+            user_address = await self.user_address_crud.get_or_none(
+                address_id=user_address_id,
+            )
+            if not user_address:
+                raise HTTPException(status_code=404, detail="User address not found")
+            
+            to_location_data = {"address": user_address.address}
+            expected_delivery_mode = DeliveryMode.WAREHOUSE_TO_DOOR
+        else:
+            raise HTTPException(status_code=400, detail="No delivery destination provided")
+
+        total_weight = 0
+        max_length, max_width, max_height = 0, 0, 0
+        for item in items:
+            product = item.product
+            total_weight += (product.weight or 100) * item.quantity
+            max_length = max(max_length, product.length or 100)
+            max_width = max(max_width, product.width or 100)
+            max_height = max(max_height, product.height or 100)
+
+        if total_weight == 0:
+            total_weight = 100
+
+        package = CalculatorPackage(
+            weight=total_weight, length=max_length, width=max_width, height=max_height
         )
-        user_delivery_point = await self.user_delivery_point_crud.get_or_none(
-            point_id=user_delivery_point_id,
+        
+        from_location = CalculatorLocation(address="Россия, Москва, Домодедово (Растуново)")
+        to_location = CalculatorLocation(**to_location_data)
+
+        logger.info(
+            "Calculating CDEK tariff",
+            extra={
+                "from": from_location.address,
+                "to": to_location.model_dump(),
+                "package": package.model_dump(),
+            },
         )
-
-        if user_address:
-            delivery_mode = DeliveryMode.DOOR_TO_DOOR
-            address = user_address.address
-        if user_delivery_point:
-            address = user_delivery_point.cdek_delivery_point.address
-
-        if not address:
-            return None
 
         result = await self.cdek_api.calculate_tariff_list(
             TariffListParams(
-                additional_order_types=additional_order_types,
-                # TODO call warehouse API to get an actual address
-                from_location=CalculatorLocation(
-                    address="Москва, Домодедово (Растуново)"
-                ),
-                to_location=CalculatorLocation(address=address),
-                # TODO call warehouse API to get items and calc their weight individually
-                packages=[
-                    CalculatorPackage(
-                        width=None,
-                        height=None,
-                        length=None,
-                        weight=500,  # граммы
-                    )
-                    for _ in items
-                ],
+                from_location=from_location,
+                to_location=to_location,
+                packages=[package],
             )
         )
+        
+        logger.debug("CDEK tariff calculation response", extra={"tariffs": result.model_dump()})
 
         if result.tariff_codes:
-            tariff_codes: list[TariffCode] = sorted(
-                filter(
-                    lambda code: code.delivery_mode == delivery_mode,
-                    result.tariff_codes,
-                ),
-                key=lambda x: (x.delivery_sum, x.period_min),
+            suitable_tariffs = sorted(
+                [t for t in result.tariff_codes if t.delivery_mode == expected_delivery_mode],
+                key=lambda x: x.delivery_sum,
             )
-            return tariff_codes[0]
+            if suitable_tariffs:
+                cheapest = suitable_tariffs[0]
+                logger.info("Cheapest CDEK tariff found with matching mode", extra=cheapest.model_dump())
+                return cheapest
+            
+            all_tariffs_sorted = sorted(result.tariff_codes, key=lambda x: x.delivery_sum)
+            if all_tariffs_sorted:
+                cheapest_any_mode = all_tariffs_sorted[0]
+                logger.warning(
+                    "No tariff with expected mode found, returning cheapest available", 
+                    extra={
+                        "expected_mode": expected_delivery_mode.name,
+                        "found_tariff": cheapest_any_mode.model_dump()
+                    }
+                )
+                return cheapest_any_mode
 
-        return None
+        logger.error(
+            "No suitable CDEK tariffs found for the given destination", 
+            extra={
+                "to_location": to_location_data,
+                "cdek_response": result.model_dump()
+            }
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Не удалось рассчитать стоимость доставки для указанного адреса."
+        )
+
+    async def create_cdek_order(self, order: Order, user: User) -> dict | None:
+        """Создает заказ в системе СДЭК и возвращает данные, включая трек-номер."""
+        logger.info("Creating CDEK order", extra={"order_id": str(order.id)})
+
+        to_location_data = {}
+        shipment_point_code = None
+        if order.delivery_method == DeliveryMethod.PICKUP and order.delivery_point:
+            shipment_point_code = order.delivery_point
+        elif (
+            order.delivery_method == DeliveryMethod.COURIER
+            and order.delivery_to_location
+        ):
+            to_location_data = {"address": order.delivery_to_location.get("address")}
+        else:
+            logger.error(
+                "Order has no valid delivery info", extra={"order_id": str(order.id)}
+            )
+            return None
+
+        packages = []
+        for i, item in enumerate(order.items):
+            product = item.product
+            package_item = Item(
+                name=product.name[:100],
+                ware_key=product.sku or str(product.id),
+                cost=float(item.price),
+                weight=product.weight or 100,
+                amount=item.quantity,
+                payment={"value": 0},
+            )
+            packages.append(
+                Package(
+                    number=f"{order.id}-{i + 1}",
+                    weight=package_item.weight * item.quantity,
+                    items=[package_item],
+                    length=product.length or 10,
+                    width=product.width or 10,
+                    height=product.height or 10,
+                )
+            )
+
+        order_data = OrderCreateForm(
+            number=str(order.id),
+            tariff_code=order.delivery_tariff_code,
+            comment=order.delivery_comment or f"Заказ #{order.id}",
+            shipment_point=shipment_point_code,
+            recipient=Contact(
+                name=user.full_name or "Получатель",
+                phones=[Phone(number=user.profile.phone_number or "+79000000000")],
+            ),
+            from_location=RequestLocation(
+                address="Россия, Москва, Домодедово (Растуново)"
+            ),
+            to_location=RequestLocation(**to_location_data)
+            if to_location_data
+            else None,
+            packages=packages,
+        )
+
+        try:
+            response = await self.cdek_api.create_order(order_data)
+
+            cdek_order_entity = response.entity
+            if cdek_order_entity and cdek_order_entity.uuid:
+                logger.info(
+                    "CDEK order created successfully",
+                    extra={
+                        "cdek_uuid": str(cdek_order_entity.uuid),
+                        "order_id": str(order.id),
+                    },
+                )
+                return {
+                    "cdek_uuid": str(cdek_order_entity.uuid),
+                    "track_number": cdek_order_entity.cdek_number,
+                }
+            else:
+                logger.error(
+                    "Failed to create CDEK order",
+                    extra={
+                        "response": response.model_dump(),
+                        "order_id": str(order.id),
+                    },
+                )
+                return None
+        except Exception as e:
+            logger.error(
+                "Exception during CDEK order creation",
+                extra={"error": str(e), "order_id": str(order.id)},
+                exc_info=True,
+            )
+            return None
 
     @staticmethod
     def _get_recipient(user: User):

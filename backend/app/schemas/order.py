@@ -73,6 +73,7 @@ class SOrder(BaseModel):
     planned_shipping_date: Optional[datetime]
     payment_method: Optional[str]
     payment_status: Optional[str]
+    track_number: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     user: SOrderUser  # Информация о пользователе, создавшем заказ

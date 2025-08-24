@@ -5,6 +5,7 @@ import { DeliveryMethod, PaymentMethod } from "@/types/order";
 import type { IUserDeliveryPoint, IUserAddress } from "@/types/order";
 import { orderService } from "@/services/orderService";
 import { logger } from "@/utils/logger";
+import { useNotification } from "@/composables/useNotification";
 
 // Константы для ключей localStorage
 const STORAGE_KEY_DELIVERY_METHOD = "checkout_delivery_method";
@@ -23,6 +24,9 @@ export const useCheckoutStore = defineStore("checkout", () => {
   const error = ref<string | null>(null);
   const promoCode = ref<string | null>(null);
   const discountPercent = ref(0);
+  const deliveryCost = ref<number | null>(null);
+  const isCalculatingDelivery = ref(false);
+  const { showNotification } = useNotification();
 
   const setPromoCode = (code: string | null, discount: number) => {
       promoCode.value = code;
@@ -51,6 +55,37 @@ export const useCheckoutStore = defineStore("checkout", () => {
       delivery_point_id: deliveryPointId,
     };
   });
+
+  const calculateDeliveryCost = async () => {
+    if (!deliveryMethod.value || 
+       (deliveryMethod.value === DeliveryMethod.PICKUP && !selectedPickupPoint.value) ||
+       (deliveryMethod.value === DeliveryMethod.COURIER && !selectedUserAddress.value)) 
+    {
+      deliveryCost.value = null;
+      return;
+    }
+    
+    isCalculatingDelivery.value = true;
+    try {
+        const orderData: ICreateOrder = {
+            delivery_method: deliveryMethod.value,
+            payment_method: PaymentMethod.YOOKASSA,
+            address_id: deliveryMethod.value === DeliveryMethod.COURIER ? selectedUserAddress.value?.id : undefined,
+            delivery_point_id: deliveryMethod.value === DeliveryMethod.PICKUP ? selectedPickupPoint.value?.id : undefined,
+        };
+        const tariff = await orderService.calculateDelivery(orderData);
+        deliveryCost.value = tariff ? tariff.delivery_sum : null;
+    } catch (e) {
+        deliveryCost.value = null;
+        logger.error("Delivery calculation failed in store", { error: e });
+        showNotification(
+            "Не удалось рассчитать доставку. Пожалуйста, выберите другой адрес.", 
+            "error"
+        );
+    } finally {
+        isCalculatingDelivery.value = false;
+    }
+  };
 
   // Методы для работы с localStorage
   const saveToLocalStorage = <T>(key: string, value: T | null): void => {
@@ -114,6 +149,10 @@ export const useCheckoutStore = defineStore("checkout", () => {
   // Наблюдатели за изменениями состояния для сохранения в localStorage
   watch(deliveryMethod, (newValue) => {
     saveToLocalStorage(STORAGE_KEY_DELIVERY_METHOD, newValue);
+  });
+
+  watch([deliveryMethod, selectedPickupPoint, selectedUserAddress], () => {
+      calculateDeliveryCost();
   });
 
   watch(selectedPickupPoint, (newValue) => {
@@ -235,5 +274,8 @@ export const useCheckoutStore = defineStore("checkout", () => {
     promoCode,
     discountPercent,
     setPromoCode,
+    deliveryCost,
+    isCalculatingDelivery,
+    calculateDeliveryCost,
   };
 });

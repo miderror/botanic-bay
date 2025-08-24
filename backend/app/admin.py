@@ -96,9 +96,18 @@ class ProductAdmin(ModelView, model=Product):
 
 
 class OrderAdmin(ModelView, model=Order):
-    column_list = [Order.id, Order.user, Order.status, Order.total, Order.created_at]
-    column_searchable_list = [Order.id]
+    column_list = [
+        Order.id,
+        Order.user,
+        Order.status,
+        Order.payment_status,
+        Order.total,
+        Order.track_number,
+        Order.created_at,
+    ]
+    column_searchable_list = [Order.id, Order.track_number, "user.full_name"]
     column_sortable_list = [Order.created_at, Order.total]
+    column_editable_list = [Order.status, Order.track_number, Order.payment_status]
     name = "Заказ"
     name_plural = "Заказы"
     icon = "fa-solid fa-shopping-cart"

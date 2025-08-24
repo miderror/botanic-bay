@@ -21,7 +21,7 @@ from app.crud.user_address import UserAddressCRUD
 from app.crud.user_delivery_point import UserDeliveryPointCRUD
 from app.models.order_status import OrderStatus
 from app.models.user import User
-from app.schemas.cdek.response import SDeliveryPoint
+from app.schemas.cdek.response import SDeliveryPoint, TariffCode
 from app.schemas.order import (
     SCreateOrder,
     SOrder,
@@ -36,6 +36,35 @@ from app.services.order.discount_service import DiscountService
 from app.services.order.order_service import OrderService
 
 router = APIRouter()
+
+
+@router.post("/calculate-delivery", response_model=Optional[TariffCode])
+async def calculate_delivery_cost(
+    data: SCreateOrder,
+    current_user: User = Depends(get_current_user),
+    cdek_service: CDEKService = Depends(get_cdek_service),
+    session: AsyncSession = Depends(get_session),
+):
+    """Рассчитывает стоимость доставки СДЭК для текущей корзины."""
+    cart_crud = CartCRUD(session)
+    cart = await cart_crud.get_active_cart(current_user.id)
+    if not cart or not cart.items:
+        raise HTTPException(status_code=400, detail="Cart is empty")
+
+    try:
+        tariff = await cdek_service.calculate_cheapest_tariff(
+            items=cart.items,
+            user_address_id=data.address_id,
+            user_delivery_point_id=data.delivery_point_id,
+        )
+        return tariff
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(
+            "Failed to calculate delivery cost", extra={"error": str(e)}, exc_info=True
+        )
+        raise HTTPException(status_code=500, detail="Failed to calculate delivery cost")
 
 
 # MARK: Orders

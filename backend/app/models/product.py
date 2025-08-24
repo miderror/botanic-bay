@@ -42,6 +42,11 @@ class Product(Base):
     )
     sku = Column(String(50), unique=True, nullable=True)
 
+    weight = Column(Integer, nullable=True, comment="Вес в граммах")
+    length = Column(Integer, nullable=True, comment="Длина в мм")
+    width = Column(Integer, nullable=True, comment="Ширина в мм")
+    height = Column(Integer, nullable=True, comment="Высота в мм")
+
     # Добавляем поле для дополнительных изображений
     additional_images_urls = Column(
         ARRAY(String),
