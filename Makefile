@@ -1,8 +1,11 @@
-# Определение файла docker-compose (по умолчанию используем dev)
-DC_FILE ?= docker-compose.dev.yml
+COMPOSE_FILE_DEV  ?= docker-compose.dev.yml
+COMPOSE_FILE_PROD ?= docker-compose.prod.yml
 
-# Определяем команду docker-compose с нужным файлом
-DC := docker-compose -f $(DC_FILE)
+DC_DEV  := docker compose -f $(COMPOSE_FILE_DEV)
+DC_PROD := docker compose -f $(COMPOSE_FILE_PROD)
+
+DC_FILE ?= $(COMPOSE_FILE_DEV)
+DC      := docker compose -f $(DC_FILE)
 
 .PHONY: build up down logs test migrate install
 
@@ -11,30 +14,30 @@ DC := docker-compose -f $(DC_FILE)
 # ==========================================
 
 dev-build: ## Собрать контейнеры для разработки
-	docker-compose -f docker-compose.dev.yml build
+	$(DC_DEV) build
 
 dev-up: ## Запустить в режиме разработки
-	docker-compose -f docker-compose.dev.yml up -d --remove-orphans
+	$(DC_DEV) up -d --remove-orphans
 
 dev-down: ## Остановить контейнеры разработки
-	docker-compose -f docker-compose.dev.yml down
+	$(DC_DEV) down
 
 dev: dev-down dev-up logs ## Запустить проект в режиме разработки с логами
 
 dev-rb: ## Пересобрать и перезапустить сервисы (dev)
-	docker-compose -f docker-compose.dev.yml up -d --no-deps --build backend frontend telegram_bot nginx
+	$(DC_DEV) up -d --no-deps --build backend frontend telegram_bot nginx
 
-dev-rb-frontend: ## Пересобрать и перезапустить сервисы (dev)
-	docker-compose -f docker-compose.dev.yml up -d --no-deps --build frontend
+dev-rb-frontend: ## Пересобрать и перезапустить frontend (dev)
+	$(DC_DEV) up -d --no-deps --build frontend
 
 dev-rb-bot: ## Пересобрать и перезапустить telegram_bot (dev)
-	docker-compose -f docker-compose.dev.yml up -d --no-deps --build telegram_bot
+	$(DC_DEV) up -d --no-deps --build telegram_bot
 
 dev-rb-nginx: ## Пересобрать и перезапустить nginx (dev)
-	docker-compose -f docker-compose.dev.yml up -d --no-deps --build nginx
+	$(DC_DEV) up -d --no-deps --build nginx
 
 dev-rs: ## Перезапустить сервисы (dev)
-	docker-compose -f docker-compose.dev.yml restart backend frontend telegram_bot nginx
+	$(DC_DEV) restart backend frontend telegram_bot nginx
 
 # ==========================================
 # Команды для продакшена
@@ -58,34 +61,34 @@ prod-prepare-dirs: ## Создать необходимые директории
 	@echo "Directory permissions set successfully"
 
 prod-build: ## Собрать контейнеры для продакшена
-	docker-compose -f docker-compose.prod.yml build
+	$(DC_PROD) build
 
 prod-build-no-cache: ## Собрать контейнеры для продакшена (без кэша)
-	docker-compose -f docker-compose.prod.yml build --no-cache
+	$(DC_PROD) build --no-cache
 
 prod-up: ## Запустить в режиме продакшена
-	docker-compose -f docker-compose.prod.yml up -d --remove-orphans
+	$(DC_PROD) up -d --remove-orphans
 
 prod-down: ## Остановить контейнеры продакшена
-	docker-compose -f docker-compose.prod.yml down
+	$(DC_PROD) down
 
 prod: prod-prepare-dirs copy-env clean-frontend-dist prod-up migrate-up logs ## Запустить проект в продакшене с логами
 
 prod-rb: ## Пересобрать и перезапустить сервисы (prod)
-	docker-compose -f docker-compose.prod.yml up -d --no-deps --build backend frontend telegram_bot nginx
+	$(DC_PROD) up -d --no-deps --build backend frontend telegram_bot nginx
 
 prod-rb-bot: ## Пересобрать и перезапустить telegram_bot (prod)
-	docker-compose -f docker-compose.prod.yml up -d --no-deps --build telegram_bot
+	$(DC_PROD) up -d --no-deps --build telegram_bot
 
 prod-rb-nginx: ## Пересобрать и перезапустить nginx (prod)
-	docker-compose -f docker-compose.prod.yml up -d --no-deps --build nginx
+	$(DC_PROD) up -d --no-deps --build nginx
 
 prod-rs: ## Перезапустить сервисы (prod)
-	docker-compose -f docker-compose.prod.yml restart backend frontend telegram_bot nginx
+	$(DC_PROD) restart backend frontend telegram_bot nginx
 
 prod-rebuild-frontend: clean-frontend-dist ## Пересобрать только frontend с очисткой volume
-	docker-compose -f docker-compose.prod.yml up -d --no-deps --build frontend
-	docker-compose -f docker-compose.prod.yml restart nginx	
+	$(DC_PROD) up -d --no-deps --build frontend
+	$(DC_PROD) restart nginx
 
 # ==========================================
 # Общие команды для логов
