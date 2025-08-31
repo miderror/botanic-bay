@@ -1,7 +1,5 @@
-/* src/assets/styles/cart.css */
 
 :root {
-  /* Цвета корзины */
   --cart-text-primary: #252525;
   --cart-text-secondary: #787878;
   --cart-background: white;
@@ -13,7 +11,6 @@
   --cart-promo-error: #ff5b5b;
   --cart-promo-success: #66ca1a;
 
-  /* Размеры */
   --cart-width-mobile: 375px;
   --cart-item-width: 268px;
   --cart-item-height: 158px;
@@ -23,18 +20,12 @@
   --cart-empty-width: 276px;
   --cart-empty-height: 240px;
 
-  /* Паттерн */
-  /* --pattern-size: 392px;
-  --pattern-height: 711px;
-  --pattern-opacity: 0.05; */
 
-  /* Переменные для паттерна (синхронизированы с каталогом) */
   --pattern-image: url('@/assets/images/bg.png');
   --pattern-size: 392px 711px;
   --pattern-opacity: 0.05;
 }
 
-/* Стили для фонового паттерна */
 .cart-background {
   position: fixed;
   top: 0;
@@ -50,14 +41,13 @@
   z-index: 0;
 }
 
-/* Контейнер корзины */
 .cart-view {
   width: 100%;
   min-height: 100vh;
   background: var(--cart-background);
   position: fixed;
   overflow: hidden;
-  z-index: 1; /* Добавим z-index для правильного слоя */
+  z-index: 1;
   padding-bottom: calc(var(--nav-height) + var(--cart-promo-height) + 32px);
 }
 
@@ -66,21 +56,18 @@
   padding-top: 24px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  z-index: 2; /* Увеличим z-index чтобы контент был над фоном */
+  z-index: 2;
   position: relative;
 }
 
-/* Медиа-запрос для корректного отображения паттерна на больших экранах */
 @media (min-width: 1200px) {
   .cart-view::before {
-    /* На больших экранах делаем паттерн на всю ширину */
     transform: none;
     background-size: contain;
     background-position: center top;
   }
 }
 
-/* Пустая корзина */
 .empty-cart {
   width: var(--cart-empty-width);
   height: var(--cart-empty-height);
@@ -137,9 +124,7 @@
   text-transform: uppercase;
 }
 
-/* [Существующие стили для корзины с товарами...] */
 
-/* Карточка товара в корзине */
 .cart-item {
   position: relative;
   width: var(--cart-item-width);
@@ -153,15 +138,13 @@
   gap: 10px;
   margin: 0 auto 16px;
   box-sizing: border-box;
-  flex-shrink: 0; /* Предотвращаем сжатие */
-  flex-grow: 0; /* Предотвращаем расширение */
+  flex-shrink: 0;
+  flex-grow: 0;
 }
 
-/* Перемещаем стили лоадера на cart-item */
-/* Оверлей для loading состояния */
 .cart-item-loader {
   position: absolute;
-  inset: 0; /* Используем inset вместо top/right/bottom/left */
+  inset: 0;
   margin: 0;
   padding: 0;
   background: rgba(255, 255, 255, 0.7);
@@ -183,18 +166,17 @@
 .cart-item.loading {
   opacity: 0.7;
   pointer-events: none;
-  min-height: auto; /* Сбрасываем min-height */
+  min-height: auto;
   position: relative;
 }
 
 .cart-item.loading .item-info {
-  margin: 0; /* Обнуляем margin */
-  padding: 0; /* Обнуляем padding */
+  margin: 0;
+  padding: 0;
   height: 114px !important;
   min-height: 114px !important;
 }
 
-/* Стили для CartQuantityControl во время loading */
 .cart-item.loading .cart-quantity-control {
   margin: 0;
   padding: 0;
@@ -240,7 +222,7 @@
   font-weight: 700;
   line-height: 10px;
   text-transform: uppercase;
-  margin-top: 0; /* Добавим это! */
+  margin-top: 0;
   margin-bottom: 18px;
 }
 
@@ -262,7 +244,6 @@
   line-height: 10px;
 }
 
-/* Контролы количества */
 .quantity-controls {
   width: 96px;
   height: 28px;
@@ -272,7 +253,6 @@
   gap: 16px;
 }
 
-/* Кнопки +/- */
 .quantity-btn {
   width: 28px;
   height: 28px;
@@ -300,7 +280,6 @@
   border-radius: 100px;
 }
 
-/* Иконки внутри кнопок */
 .minus-icon {
   width: 12px;
   height: 2.25px;
@@ -345,7 +324,6 @@
   letter-spacing: 0.16px;
 }
 
-/* Кнопка удаления */
 .delete-btn {
   position: absolute;
   top: -12px;
@@ -359,7 +337,6 @@
   z-index: 5;
 }
 
-/* Промокод */
 .promo-code {
   width: var(--cart-item-width);
   height: var(--cart-promo-height);
@@ -421,7 +398,6 @@
   line-height: 10px;
 }
 
-/* Таймер корзины */
 .cart-timer {
   width: var(--cart-item-width);
   margin: 0 auto 16px;
@@ -434,7 +410,6 @@
   opacity: 0.8;
 }
 
-/* Блок с итогом и кнопкой оплаты */
 .cart-total {
   width: var(--cart-item-width);
   margin: 24px auto;
@@ -453,7 +428,6 @@
   text-align: center;
 }
 
-/* Обновляем стили для кнопки оплаты */
 .cart-checkout {
   position: fixed;
   bottom: var(--nav-height);
@@ -466,7 +440,6 @@
   justify-content: center;
 }
 
-/* Добавляем стили для скроллбара (опционально) */
 .cart-content::-webkit-scrollbar {
   width: 6px;
 }
@@ -509,10 +482,9 @@
   outline: none;
 }
 
-/* Для выравнивания кнопки купить и контроля количества */
 .product-controls {
-  min-height: 40px !important; /* Принудительно задаем минимальную высоту */
-  height: 40px !important; /* И фиксированную высоту тоже */
+  min-height: 40px !important;
+  height: 40px !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -535,4 +507,63 @@
   font-size: 16px;
   cursor: pointer;
   color: #2e7d32;
+}
+
+.promo-code.success {
+  border: 2px solid var(--cart-promo-success);
+  box-shadow: none;
+}
+
+.promo-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.promo-message {
+  font-size: 10px;
+  font-family: 'Open Sans Hebrew', sans-serif;
+  font-weight: 700;
+  padding: 10px;
+  line-height: 1;
+}
+
+.promo-code.error .promo-message {
+  color: var(--cart-promo-error);
+}
+
+.promo-code.success .promo-message {
+  color: var(--cart-promo-success);
+}
+
+.promo-btn {
+  position: relative;
+}
+
+.promo-btn .spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: promo-spin 1s linear infinite;
+}
+
+.promo-btn .btn-text.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+@keyframes promo-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }

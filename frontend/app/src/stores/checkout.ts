@@ -7,15 +7,16 @@ import { orderService } from "@/services/orderService";
 import { logger } from "@/utils/logger";
 import { useUserStore } from "@/stores/user";
 import { useNotification } from "@/composables/useNotification";
+import { promoCodeService } from "@/services/promoCodeService";
 
-// Константы для ключей localStorage
 const STORAGE_KEY_DELIVERY_METHOD = "checkout_delivery_method";
 const STORAGE_KEY_PICKUP_POINT = "checkout_pickup_point";
 const STORAGE_KEY_USER_ADDRESS = "checkout_user_address";
 const STORAGE_KEY_PAYMENT_METHOD = "checkout_payment_method";
 
+type PromoCodeStatus = "idle" | "loading" | "success" | "error";
+
 export const useCheckoutStore = defineStore("checkout", () => {
-  // Состояние
   const isCheckoutActive = ref(false);
   const deliveryMethod = ref<DeliveryMethod | null>(null);
   const selectedPickupPoint = ref<IUserDeliveryPoint | null>(null);
@@ -23,8 +24,12 @@ export const useCheckoutStore = defineStore("checkout", () => {
   const paymentMethod = ref<PaymentMethod | null>(null);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+  
   const promoCode = ref<string | null>(null);
   const discountPercent = ref(0);
+  const promoCodeStatus = ref<PromoCodeStatus>("idle");
+  const promoCodeMessage = ref("");
+
   const deliveryCost = ref<number | null>(null);
   const isCalculatingDelivery = ref(false);
   const { showNotification } = useNotification();
@@ -32,11 +37,55 @@ export const useCheckoutStore = defineStore("checkout", () => {
   const userDiscountPercent = computed(() => userStore.discount?.current_percent || 0);
 
   const setPromoCode = (code: string | null, discount: number) => {
-      promoCode.value = code;
-      discountPercent.value = discount;
+    promoCode.value = code;
+    discountPercent.value = discount;
   };
 
-  // Вычисляемые свойства
+  const applyPromoCode = async (code: string) => {
+    if (!code.trim()) return;
+
+    promoCodeStatus.value = "loading";
+    promoCodeMessage.value = "";
+
+    try {
+      const response = await promoCodeService.applyPromoCode(code);
+      if (response.is_valid) {
+        setPromoCode(response.code, response.discount_percent);
+        promoCodeStatus.value = "success";
+        promoCodeMessage.value = "Промокод активирован!";
+      } else {
+        setPromoCode(null, 0);
+        promoCodeStatus.value = "error";
+        promoCodeMessage.value = "Неверный промокод!";
+        setTimeout(() => {
+          if (promoCodeStatus.value === 'error') {
+            promoCodeStatus.value = "idle";
+            promoCodeMessage.value = "";
+          }
+        }, 3000);
+      }
+    } catch (err) {
+      logger.error("Failed to apply promo code", { code, error: err });
+      setPromoCode(null, 0);
+      promoCodeStatus.value = "error";
+      promoCodeMessage.value = "Ошибка сервера";
+      setTimeout(() => {
+          if (promoCodeStatus.value === 'error') {
+            promoCodeStatus.value = "idle";
+            promoCodeMessage.value = "";
+          }
+      }, 3000);
+    }
+  };
+
+  const removePromoCode = () => {
+    setPromoCode(null, 0);
+    promoCodeStatus.value = "idle";
+    promoCodeMessage.value = "";
+    showNotification("Промокод удален", "info");
+  };
+
+  
   const canProceed = computed(() => {
     return !!(
       deliveryMethod.value &&
@@ -46,9 +95,8 @@ export const useCheckoutStore = defineStore("checkout", () => {
     );
   });
 
-  // Получение текущего адреса в зависимости от метода доставки
   const getDeliveryData = computed(() => {
-    const isPickupSelected = currentDeliveryMethod.value === DeliveryMethod.PICKUP;
+    const isPickupSelected = deliveryMethod.value === DeliveryMethod.PICKUP;
 
     const deliveryPointId = isPickupSelected ? selectedPickupPoint.value?.id || "" : null;
     const addressId = !isPickupSelected ? selectedUserAddress.value?.id || "" : null;
@@ -90,7 +138,6 @@ export const useCheckoutStore = defineStore("checkout", () => {
     }
   };
 
-  // Методы для работы с localStorage
   const saveToLocalStorage = <T>(key: string, value: T | null): void => {
     try {
       if (value === null) {
@@ -115,7 +162,6 @@ export const useCheckoutStore = defineStore("checkout", () => {
     }
   };
 
-  // Загрузка сохраненного состояния при инициализации
   const loadSavedState = () => {
     try {
       const savedDeliveryMethod = loadFromLocalStorage<DeliveryMethod>(STORAGE_KEY_DELIVERY_METHOD);
@@ -149,7 +195,6 @@ export const useCheckoutStore = defineStore("checkout", () => {
     }
   };
 
-  // Наблюдатели за изменениями состояния для сохранения в localStorage
   watch(deliveryMethod, (newValue) => {
     saveToLocalStorage(STORAGE_KEY_DELIVERY_METHOD, newValue);
   });
@@ -170,10 +215,8 @@ export const useCheckoutStore = defineStore("checkout", () => {
     saveToLocalStorage(STORAGE_KEY_PAYMENT_METHOD, newValue);
   });
 
-  // Загружаем сохраненное состояние при создании store
   loadSavedState();
 
-  // Действия
   const setDeliveryMethod = (method: DeliveryMethod) => {
     logger.debug("Setting delivery method", {
       oldMethod: deliveryMethod.value,
@@ -203,7 +246,6 @@ export const useCheckoutStore = defineStore("checkout", () => {
 
   const startCheckout = () => {
     isCheckoutActive.value = true;
-    // Загружаем сохраненное состояние при начале оформления заказа
     loadSavedState();
   };
 
@@ -240,8 +282,9 @@ export const useCheckoutStore = defineStore("checkout", () => {
     error.value = null;
     promoCode.value = null;
     discountPercent.value = 0;
+    promoCodeStatus.value = 'idle';
+    promoCodeMessage.value = '';
 
-    // Очищаем localStorage
     saveToLocalStorage(STORAGE_KEY_DELIVERY_METHOD, null);
     saveToLocalStorage(STORAGE_KEY_PICKUP_POINT, null);
     saveToLocalStorage(STORAGE_KEY_USER_ADDRESS, null);
@@ -251,7 +294,6 @@ export const useCheckoutStore = defineStore("checkout", () => {
   };
 
   return {
-    // Состояние
     deliveryMethod,
     isCheckoutActive,
     selectedPickupPoint,
@@ -260,12 +302,10 @@ export const useCheckoutStore = defineStore("checkout", () => {
     isLoading,
     error,
 
-    // Вычисляемые свойства
     canProceed,
     getDeliveryData,
     userDiscountPercent,
 
-    // Методы
     setDeliveryMethod,
     setPickupPoint,
     setUserAddress,
@@ -278,6 +318,10 @@ export const useCheckoutStore = defineStore("checkout", () => {
     promoCode,
     discountPercent,
     setPromoCode,
+    promoCodeStatus,
+    promoCodeMessage,
+    applyPromoCode,
+    removePromoCode,
     deliveryCost,
     isCalculatingDelivery,
     calculateDeliveryCost,
