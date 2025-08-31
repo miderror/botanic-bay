@@ -13,7 +13,7 @@ import type { IProduct } from "@/types/product";
 import { logger } from "@/utils/logger";
 import { debounce } from "lodash-es";
 import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
-import CategorySelector from "./CategorySelector.vue";
+import CategoryMenu from "./CategoryMenu.vue";
 import ProductCard from "./ProductCard.vue";
 import SearchBar from "./SearchBar.vue";
 
@@ -397,13 +397,19 @@ watch(isKeyboardVisible, (visible) => {
           class="catalog-filters"
           :class="{ 'search-active': isSearchActive }"
         >
+          <div
+            v-if="!isSearchActive"
+            class="filters-spacer"
+          ></div>
+          
           <template v-if="!isSearchActive">
-            <CategorySelector
+            <CategoryMenu
               :categories="categories"
               :selectedCategory="selectedCategory"
               @select="handleCategorySelect"
             />
           </template>
+          
           <SearchBar
             ref="searchBarRef"
             v-model="searchQuery"
