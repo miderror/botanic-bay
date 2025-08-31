@@ -385,7 +385,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 34px;
+  height: 32px;
   flex-grow: 1;
 }
 
@@ -395,8 +395,8 @@
 }
 
 .menu-btn {
-  height: 34px;
-  padding: 0 20px;
+  height: 32px;
+  padding: 6px 14px;
   border: none;
   background-color: var(--catalog-button-color);
   color: white;
@@ -418,11 +418,13 @@
 }
 
 .menu-btn span {
-  font-size: 10px;
+  font-size: 8px;
   font-family: var(--font-inter);
   font-weight: 700;
   text-transform: uppercase;
   white-space: nowrap;
+  line-height: 9.68px;
+  letter-spacing: 0.08px;
 }
 
 .menu-btn.active {
@@ -431,7 +433,7 @@
 
 .dropdown-panel {
   position: fixed;
-  top: 13px;
+  top: 14px;
   left: 50%;
   transform: translateX(-50%);
   width: 280px;
