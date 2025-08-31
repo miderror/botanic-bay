@@ -8,6 +8,6 @@ case "$SERVICE_TYPE" in
     ;;
   fastapi)
     echo "Starting FastAPI server..."
-    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --log-config logging.ini
     ;;
 esac

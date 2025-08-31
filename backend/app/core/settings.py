@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     NGROK_URL: str
 
     # Frontend settings
-    FRONTEND_URL: str = Field(default_factory=lambda: os.getenv("NGROK_URL"))
+    FRONTEND_URL: str = Field(default_factory=lambda: os.getenv("FRONTEND_URL"))
 
     # CORS settings
     CORS_ORIGINS: list[str] = Field(

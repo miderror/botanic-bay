@@ -27,6 +27,9 @@ dev: dev-down dev-up logs ## Запустить проект в режиме р�
 dev-rb: ## Пересобрать и перезапустить сервисы (dev)
 	$(DC_DEV) up -d --no-deps --build backend frontend telegram_bot nginx
 
+dev-rb-backend: ## Пересобрать и перезапустить backend (dev)
+	$(DC_DEV) up -d --no-deps --build backend
+
 dev-rb-frontend: ## Пересобрать и перезапустить frontend (dev)
 	$(DC_DEV) up -d --no-deps --build frontend
 
@@ -127,6 +130,9 @@ migrate-status: ## Показать статус миграций
 
 init-roles: ## Инициализация ролей (заполняем БД ролями)
 	$(DC) exec backend python /backend/scripts/init_db.py
+
+exec-backend:
+	$(DC) exec backend sh
 
 db-backup: ## Создание дампа БД
 	@mkdir -p backup

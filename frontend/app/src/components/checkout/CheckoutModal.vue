@@ -12,6 +12,7 @@ import { useCheckout } from "@/composables/useCheckout";
 import { useNotification } from "@/composables/useNotification";
 import { useCheckoutStore } from "@/stores/checkout";
 import { PaymentMethod } from "@/types/order";
+import { useImageUrl } from "@/composables/useImageUrl";
 import { formatPrice } from "@/utils/formatters";
 import { logger } from "@/utils/logger";
 import { computed, onMounted, onUnmounted } from "vue";
@@ -40,6 +41,7 @@ const {
   deliveryCost,
   isCalculatingDelivery,
 } = useCheckout();
+const { getImageUrl, handleImageError } = useImageUrl();
 
 /**
  * Товары в корзине для отображения
@@ -151,9 +153,10 @@ onUnmounted(() => {
         >
           <div class="item-image-container">
             <img
-              :src="item.image_url || '/images/placeholder.jpg'"
+              :src="getImageUrl(item.image_url)"
               :alt="item.product_name"
               class="item-image"
+              @error="handleImageError"
             />
           </div>
           <span class="item-quantity">{{ item.quantity }} шт.</span>

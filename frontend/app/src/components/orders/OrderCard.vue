@@ -45,7 +45,7 @@ const { formatDeliveryDate } = useOrderFormatting();
       >
         <img
           :alt="item.product_name"
-          :src="getImageUrl(item.image_url || null)"
+          :src="getImageUrl(item.image_url)"
           class="bb-order-card__image"
           @error="handleImageError"
         />

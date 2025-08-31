@@ -3,6 +3,7 @@ from uuid import UUID
 
 from sqlalchemy import and_, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.core.logger import logger
 from app.models.category import Category
@@ -38,18 +39,20 @@ class ProductCRUD:
         Returns:
             Tuple[List[Product], int]: Список активных товаров и общее количество
         """
-        # Начинаем с запроса, который фильтрует только активные товары
-        query = select(Product).where(Product.is_active == True)
+        query = (
+            select(Product)
+            .where(Product.is_active == True)
+            .options(
+                selectinload(Product.additional_images), joinedload(Product.category)
+            )
+        )
 
         if category:
-            # Используем правильный способ фильтрации по связанной таблице
             query = query.join(Product.category).where(Category.name == category)
 
-        # Получаем общее количество для пагинации
         count_query = select(func.count()).select_from(query.subquery())
         total = await self.session.scalar(count_query)
 
-        # Добавляем пагинацию
         query = query.offset(skip).limit(limit)
         result = await self.session.execute(query)
         products = result.unique().scalars().all()
@@ -75,9 +78,14 @@ class ProductCRUD:
         Returns:
             Optional[Product]: Товар если найден, иначе None
         """
-        result = await self.session.execute(
-            select(Product).where(Product.id == product_id)
+        query = (
+            select(Product)
+            .where(Product.id == product_id)
+            .options(
+                selectinload(Product.additional_images), joinedload(Product.category)
+            )
         )
+        result = await self.session.execute(query)
         product = result.scalar_one_or_none()
 
         if product:
@@ -98,19 +106,15 @@ class ProductCRUD:
             Product: Созданный товар
         """
         try:
-            # Преобразуем данные в словарь
             product_dict = product_data.model_dump()
 
-            # Обрабатываем категорию если она есть
             if category_name := product_dict.pop("category", None):
-                # Используем CategoryCRUD для получения/создания категории
                 from app.crud.category import CategoryCRUD
 
                 category_crud = CategoryCRUD(self.session)
                 category = await category_crud.get_or_create(category_name)
                 product_dict["category"] = category
 
-            # Создаем продукт
             product = Product(**product_dict)
             self.session.add(product)
             await self.session.commit()
@@ -140,12 +144,10 @@ class ProductCRUD:
         """
         update_data = product_data.model_dump(exclude_unset=True)
 
-        # Обработка additional_images_urls если они есть в данных
         if "additional_images_urls" in update_data:
             if not product_data.additional_images_urls:
-                update_data["additional_images_urls"] = []  # Пустой список если None
+                update_data["additional_images_urls"] = []
 
-        # Если есть категория, получаем или создаем её
         if "category" in update_data:
             category_name = update_data["category"]
             if category_name:
@@ -171,7 +173,6 @@ class ProductCRUD:
 
             if product:
                 await self.session.commit()
-                # Делаем refresh чтобы получить обновленные связи
                 await self.session.refresh(product)
                 logger.info(
                     "Updated product",
@@ -201,15 +202,14 @@ class ProductCRUD:
             "id": str(product.id),
             "name": product.name,
             "description": product.description,
-            "additional_description": product.additional_description,  # Добавляем новое поле
+            "additional_description": product.additional_description,
             "price": float(product.price),
             "stock": product.stock,
             "is_active": product.is_active,
             "category": product.category.name if product.category else None,
             "image_url": product.image_url,
             "background_image_url": product.background_image_url,
-            "additional_images_urls": product.additional_images_urls
-            or [],  # Добавляем это поле
+            "additional_images_urls": product.additional_images_urls or [],
             "sku": product.sku,
             "created_at": product.created_at,
             "updated_at": product.updated_at,
@@ -229,10 +229,8 @@ class ProductCRUD:
         Returns:
             Tuple[List[Product], int]: Список товаров и общее количество
         """
-        # Начинаем с базового запроса, добавляя фильтр по is_active
         query = select(Product).where(Product.is_active == True)
 
-        # Применяем дополнительные фильтры
         if filters:
             if name := filters.get("name"):
                 query = query.where(Product.name.ilike(f"%{name}%"))
@@ -243,11 +241,9 @@ class ProductCRUD:
             if max_price := filters.get("max_price"):
                 query = query.where(Product.price <= max_price)
 
-        # Считаем общее количество активных товаров
         count_query = select(func.count()).select_from(query.subquery())
         total = await self.session.scalar(count_query)
 
-        # Применяем пагинацию
         query = query.offset(skip).limit(limit)
 
         result = await self.session.execute(query)
@@ -339,22 +335,25 @@ class ProductCRUD:
             Tuple[List[Product], int]: Список найденных активных товаров и общее количество
         """
         try:
-            # Создаем базовый запрос для поиска по имени среди активных товаров
-            query = select(Product).where(
-                and_(
-                    Product.name.ilike(f"%{search_query}%"),
-                    Product.is_active == True,  # Добавляем фильтр по активным товарам
+            query = (
+                select(Product)
+                .where(
+                    and_(
+                        Product.name.ilike(f"%{search_query}%"),
+                        Product.is_active == True,
+                    )
+                )
+                .options(
+                    selectinload(Product.additional_images),
+                    joinedload(Product.category),
                 )
             )
 
-            # Получаем общее количество результатов для пагинации
             count_query = select(func.count()).select_from(query.subquery())
             total = await self.session.scalar(count_query)
 
-            # Применяем пагинацию к основному запросу
             query = query.offset(skip).limit(limit)
 
-            # Выполняем запрос
             result = await self.session.execute(query)
             products = result.scalars().all()
 

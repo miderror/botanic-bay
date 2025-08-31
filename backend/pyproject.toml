@@ -35,6 +35,8 @@ sentry-sdk = "^2.33.0"
 sqladmin = "^0.21.0"
 itsdangerous = "^2.2.0"
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+fastapi-storages = {extras = ["sqlalchemy"], version = "^0.3.0"}
+pillow = "^11.3.0"
 
 
 [tool.poetry.group.dev.dependencies]

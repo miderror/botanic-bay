@@ -29,6 +29,7 @@ services:
       - media_data:/backend/media
       - static_data:/backend/static
       - logs_data:/backend/logs
+      - admin_static_data:/opt/venv/lib/python3.11/site-packages/sqladmin/statics
     env_file:
       - backend/.env
     networks:
@@ -52,6 +53,7 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /var/lib/letsencrypt:/var/lib/letsencrypt:ro
       - frontend_dist:/usr/share/nginx/html
+      - admin_static_data:/usr/share/nginx/html/admin/statics:ro
     depends_on:
       - backend
       - frontend
@@ -89,7 +91,7 @@ services:
       - SERVICE_TYPE=telegram_bot
       - PYTHONUNBUFFERED=1
       - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0      
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0   
     volumes:
       - ./backend:/backend
     env_file:
@@ -138,3 +140,5 @@ volumes:
       o: bind
   frontend_dist:
     name: tg_store_frontend_dist
+  admin_static_data:
+    name: tg_store_admin_static

@@ -8,8 +8,12 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.datastructures import State
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.responses import Response
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from app.admin import init_admin
 from app.api.middleware import log_request_middleware
@@ -20,6 +24,24 @@ from app.core.logger import logger
 from app.core.settings import settings
 from app.services.cdek.client import get_cdek_async_client
 from app.services.scheduler import scheduler
+
+
+class DebugTracebackMiddleware(BaseHTTPMiddleware):
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        try:
+            return await call_next(request)
+        except Exception as e:
+            logger.error(
+                f"Unhandled exception during request: {request.method} {request.url.path}",
+                exc_info=True,
+            )
+            return JSONResponse(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                content={"detail": "Internal Server Error", "error": str(e)},
+            )
+
 
 if settings.SENTRY_DSN:
     # Инициализация Sentry/Bugsink для отслеживания ошибок
@@ -96,6 +118,11 @@ logfire.instrument_fastapi(
     capture_headers=True,
 )
 
+if settings.DEBUG:
+    app.add_middleware(DebugTracebackMiddleware)
+
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+
 # Настройка CORS
 app.add_middleware(
     CORSMiddleware,
@@ -110,6 +137,9 @@ app.add_middleware(
 app.middleware("http")(log_request_middleware)
 
 init_admin(app, engine)
+
+app.mount(settings.MEDIA_URL, StaticFiles(directory=settings.MEDIA_DIR), name="media")
+app.mount("/backend/media", StaticFiles(directory=settings.MEDIA_DIR), name="backend-media-hack")
 
 # Подключаем API роутер
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)

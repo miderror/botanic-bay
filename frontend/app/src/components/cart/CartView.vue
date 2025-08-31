@@ -20,6 +20,7 @@ import { storeToRefs } from "pinia";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useCheckoutStore } from "@/stores/checkout";
 import { promoCodeService } from "@/services/promoCodeService";
+import { useImageUrl } from "@/composables/useImageUrl";
 
 // Инициализация состояния корзины
 const { isInitialized } = useCartInitialization();
@@ -36,6 +37,7 @@ const { remainingTime } = storeToRefs(cartStore);
 const { cart, isLoading, error, initCart, removeFromCart, formatRemainingTime, isItemLoading } = useCart();
 
 const checkoutStore = useCheckoutStore();
+const { getImageUrl, handleImageError } = useImageUrl();
 
 // UI состояние
 const promoCodeInput = ref("");
@@ -47,14 +49,6 @@ const showCheckoutModal = ref(false);
 const formattedRemainingTime = computed(() => {
   return formatRemainingTime(remainingTime.value || 0);
 });
-
-const getImageUrl = (imageUrl: string | null) => {
-  if (!imageUrl || imageUrl === "") return "/images/placeholder.jpg";
-  if (imageUrl.startsWith("http") || imageUrl.startsWith("/media")) {
-    return imageUrl;
-  }
-  return `/media/products/${imageUrl}`;
-};
 
 // Получение доступного количества товара
 const getAvailableQuantity = (productId: string): number => {
@@ -248,7 +242,8 @@ onUnmounted(() => {
               <img
                 :src="getImageUrl(item.image_url)"
                 :alt="item.product_name"
-              />
+                @error="handleImageError" 
+            />
             </div>
 
             <!-- Информация о товаре -->
