@@ -187,7 +187,8 @@ const onMapClick = async (object: any, event: any) => {
     };
 
     selectedMapCustomPoint.value = coords;
-    isSearchModalOpen.value = true;
+    isSearchModalOpen.value = false;
+    isUserAddressModalOpen.value = true;
   } catch (error) {
     console.error("Ошибка при обработке клика по карте:", error);
     showNotification("Произошла ошибка при выборе адреса", "error");
