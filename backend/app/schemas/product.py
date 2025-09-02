@@ -19,21 +19,18 @@ class SProductBase(BaseModel):
     )
     stock: int = Field(0, description="Количество товара на складе", ge=0)
     is_active: bool = Field(True, description="Статус активности товара")
-    category: Optional[str] = Field(
-        None, description="Название категории товара"
-    )  # Явно указываем строку
+    category: Optional[str] = Field(None, description="Название категории товара")
     image_url: Optional[str] = Field(None, description="URL изображения товара")
     background_image_url: Optional[str] = Field(
         None, description="URL фоновой картинки товара"
+    )
+    header_image_url: Optional[str] = Field(
+        None, description="URL изображения для шапки товара"
     )
     weight: Optional[int] = Field(None, description="Вес в граммах", ge=0)
     length: Optional[int] = Field(None, description="Длина в мм", ge=0)
     width: Optional[int] = Field(None, description="Ширина в мм", ge=0)
     height: Optional[int] = Field(None, description="Высота в мм", ge=0)
-
-    additional_images_urls: Optional[List[str]] = Field(
-        default_factory=list, description="Список URL дополнительных изображений товара"
-    )
 
     class Config:
         from_attributes = True
@@ -67,8 +64,8 @@ class SProductUpdate(BaseModel):
     background_image_url: Optional[str] = Field(
         None, description="URL фоновой картинки товара"
     )
-    additional_images_urls: Optional[List[str]] = Field(
-        None, description="Список URL дополнительных изображений товара"
+    header_image_url: Optional[str] = Field(
+        None, description="URL изображения для шапки товара"
     )
 
 

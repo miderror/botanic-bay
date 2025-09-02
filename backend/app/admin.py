@@ -1,6 +1,4 @@
-import os
-import uuid
-from typing import Any, List, Optional
+from typing import Any, List
 
 from markupsafe import Markup
 from passlib.context import CryptContext
@@ -9,7 +7,7 @@ from sqladmin.authentication import AuthenticationBackend
 from sqlalchemy.orm import joinedload
 from starlette.datastructures import UploadFile
 from starlette.requests import Request
-from wtforms import Field, Form
+from wtforms import Field
 from wtforms.widgets import FileInput
 
 from app.core.settings import settings
@@ -18,7 +16,6 @@ from app.models import (
     Order,
     PayoutRequest,
     Product,
-    ProductImage,
     PromoCode,
     Referral,
     User,
@@ -111,23 +108,9 @@ class UserAdmin(ModelView, model=User):
     form_ajax_refs = {"roles": {"fields": ("name",), "order_by": "name"}}
 
 
-class ProductImageAdmin(ModelView, model=ProductImage):
-    name = "Изображение товара"
-    name_plural = "Изображения товаров"
-    icon = "fa-solid fa-image"
-    exclude_from_menu = True
-    form_columns = [ProductImage.image_url, ProductImage.position]
-    column_labels = {
-        ProductImage.image_url: "Файл",
-        ProductImage.position: "Порядок",
-    }
-    form_widget_args = {"position": {"style": "width: 80px;"}}
-
-
 class ProductAdmin(ModelView, model=Product):
     name, name_plural, icon = "Товар", "Товары", "fa-solid fa-box"
 
-    # column_inline_models = [ProductImageAdmin]
     list_query_load_options = [joinedload(Product.category)]
 
     form_columns = [
@@ -141,6 +124,7 @@ class ProductAdmin(ModelView, model=Product):
         Product.is_active,
         Product.image_url,
         Product.background_image_url,
+        Product.header_image_url,
         Product.weight,
         Product.length,
         Product.width,

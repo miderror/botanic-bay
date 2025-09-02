@@ -1,9 +1,10 @@
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import UUID
 
+from fastapi import UploadFile
 from sqlalchemy import and_, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import joinedload
 
 from app.core.logger import logger
 from app.models.category import Category
@@ -17,12 +18,6 @@ class ProductCRUD:
     """
 
     def __init__(self, session: AsyncSession):
-        """
-        Инициализация CRUD операций
-
-        Args:
-            session: Асинхронная сессия SQLAlchemy
-        """
         self.session = session
 
     async def get_products(
@@ -30,21 +25,11 @@ class ProductCRUD:
     ) -> Tuple[List[Product], int]:
         """
         Получение списка активных товаров
-
-        Args:
-            skip: Сколько записей пропустить
-            limit: Сколько записей вернуть
-            category: Название категории для фильтрации
-
-        Returns:
-            Tuple[List[Product], int]: Список активных товаров и общее количество
         """
         query = (
             select(Product)
             .where(Product.is_active == True)
-            .options(
-                selectinload(Product.additional_images), joinedload(Product.category)
-            )
+            .options(joinedload(Product.category))
         )
 
         if category:
@@ -53,7 +38,7 @@ class ProductCRUD:
         count_query = select(func.count()).select_from(query.subquery())
         total = await self.session.scalar(count_query)
 
-        query = query.offset(skip).limit(limit)
+        query = query.order_by(Product.name).offset(skip).limit(limit)
         result = await self.session.execute(query)
         products = result.unique().scalars().all()
 
@@ -65,25 +50,16 @@ class ProductCRUD:
                 "category_filter": category,
             },
         )
-
         return products, total
 
     async def get_product(self, product_id: UUID) -> Optional[Product]:
         """
         Получение товара по ID
-
-        Args:
-            product_id: ID товара
-
-        Returns:
-            Optional[Product]: Товар если найден, иначе None
         """
         query = (
             select(Product)
             .where(Product.id == product_id)
-            .options(
-                selectinload(Product.additional_images), joinedload(Product.category)
-            )
+            .options(joinedload(Product.category))
         )
         result = await self.session.execute(query)
         product = result.scalar_one_or_none()
@@ -92,34 +68,28 @@ class ProductCRUD:
             logger.debug(f"Retrieved product", extra={"product_id": str(product_id)})
         else:
             logger.debug(f"Product not found", extra={"product_id": str(product_id)})
-
         return product
 
     async def create_product(self, product_data: SProductCreate) -> Product:
         """
         Создание нового товара
-
-        Args:
-            product_data: Данные товара
-
-        Returns:
-            Product: Созданный товар
         """
         try:
-            product_dict = product_data.model_dump()
+            product_dict = product_data.model_dump(exclude_unset=True)
 
             if category_name := product_dict.pop("category", None):
                 from app.crud.category import CategoryCRUD
 
                 category_crud = CategoryCRUD(self.session)
                 category = await category_crud.get_or_create(category_name)
-                product_dict["category"] = category
+                product_dict["category_id"] = category.id
+
+            product_dict.pop("additional_images_urls", None)
 
             product = Product(**product_dict)
             self.session.add(product)
             await self.session.commit()
             await self.session.refresh(product)
-
             logger.info(
                 "Created new product",
                 extra={
@@ -128,9 +98,7 @@ class ProductCRUD:
                     "category": product.category_name,
                 },
             )
-
             return product
-
         except Exception as e:
             await self.session.rollback()
             logger.error("Failed to create product", exc_info=True)
@@ -140,49 +108,56 @@ class ProductCRUD:
         self, product_id: UUID, product_data: SProductUpdate
     ) -> Optional[Product]:
         """
-        Обновление товара
+        Обновление товара с умной обработкой файловых полей, чтобы избежать перезаписи.
         """
+        product = await self.get_product(product_id)
+        if not product:
+            return None
+
         update_data = product_data.model_dump(exclude_unset=True)
 
-        if "additional_images_urls" in update_data:
-            if not product_data.additional_images_urls:
-                update_data["additional_images_urls"] = []
-
-        if "category" in update_data:
-            category_name = update_data["category"]
-            if category_name:
-                from app.crud.category import CategoryCRUD
-
-                category_crud = CategoryCRUD(self.session)
-                category = await category_crud.get_or_create(category_name)
-                update_data["category_id"] = category.id
-            else:
-                update_data["category_id"] = None
-            del update_data["category"]
-
-        query = (
-            update(Product)
-            .where(Product.id == product_id)
-            .values(**update_data)
-            .returning(Product)
-        )
-
         try:
-            result = await self.session.execute(query)
-            product = result.scalar_one_or_none()
+            if "category" in update_data:
+                category_name = update_data.pop("category")
+                if category_name:
+                    from app.crud.category import CategoryCRUD
 
-            if product:
-                await self.session.commit()
-                await self.session.refresh(product)
-                logger.info(
-                    "Updated product",
-                    extra={
-                        "product_id": str(product_id),
-                        "updated_fields": list(update_data.keys()),
-                    },
-                )
+                    category_crud = CategoryCRUD(self.session)
+                    category = await category_crud.get_or_create(category_name)
+                    product.category_id = category.id
+                else:
+                    product.category_id = None
 
+            image_fields = ["image_url", "background_image_url", "header_image_url"]
+            for field in image_fields:
+                if field in update_data:
+                    new_value = update_data.pop(field)
+
+                    if new_value is not None and not isinstance(new_value, UploadFile):
+                        logger.debug(
+                            f"Ignoring invalid/empty update for image field '{field}'."
+                        )
+                        continue
+
+                    setattr(product, field, new_value)
+
+            for key, value in update_data.items():
+                setattr(product, key, value)
+
+            await self.session.commit()
+            await self.session.refresh(product)
+
+            logger.info(
+                "Updated product",
+                extra={
+                    "product_id": str(product_id),
+                    "updated_fields": list(
+                        product_data.model_dump(exclude_unset=True).keys()
+                    ),
+                },
+            )
             return product
+
         except Exception as e:
             await self.session.rollback()
             logger.error("Failed to update product", exc_info=True)
@@ -191,12 +166,6 @@ class ProductCRUD:
     def to_dict(self, product: Product) -> dict:
         """
         Преобразование Product в словарь для API
-
-        Args:
-            product: Объект продукта
-
-        Returns:
-            dict: Словарь с данными продукта
         """
         return {
             "id": str(product.id),
@@ -209,7 +178,7 @@ class ProductCRUD:
             "category": product.category.name if product.category else None,
             "image_url": product.image_url,
             "background_image_url": product.background_image_url,
-            "additional_images_urls": product.additional_images_urls or [],
+            "header_image_url": product.header_image_url,
             "sku": product.sku,
             "created_at": product.created_at,
             "updated_at": product.updated_at,
@@ -220,14 +189,6 @@ class ProductCRUD:
     ) -> tuple[List[Product], int]:
         """
         Получение списка АКТИВНЫХ товаров с пагинацией и фильтрацией
-
-        Args:
-            skip: Сколько записей пропустить
-            limit: Сколько записей вернуть
-            filters: Словарь с фильтрами вида {"поле": "значение"}
-
-        Returns:
-            Tuple[List[Product], int]: Список товаров и общее количество
         """
         query = select(Product).where(Product.is_active == True)
 
@@ -253,86 +214,38 @@ class ProductCRUD:
             "Retrieved active products with pagination",
             extra={"total": total, "skip": skip, "limit": limit, "filters": filters},
         )
-
         return products, total
 
     async def delete_product(self, product_id: UUID) -> bool:
         """
         Удаление товара
-
-        Args:
-            product_id: ID товара
-
-        Returns:
-            bool: True если удален, False если не найден
         """
-        query = select(Product).where(Product.id == product_id)
-        result = await self.session.execute(query)
-        product = result.scalar_one_or_none()
-
+        product = await self.get_product(product_id)
         if not product:
             return False
 
         await self.session.delete(product)
         await self.session.commit()
-
         logger.info("Product deleted", extra={"product_id": str(product_id)})
         return True
 
     async def update_product_images(
-        self, product_id: UUID, additional_images_urls: List[str]
+        self, product_id: UUID, image_data: dict
     ) -> Optional[Product]:
         """
-        Обновление дополнительных изображений товара
-
-        Args:
-            product_id: ID товара
-            additional_images_urls: Список URL дополнительных изображений
-
-        Returns:
-            Optional[Product]: Обновленный товар или None если не найден
+        Обновление изображений товара. (Устаревший метод)
         """
-        try:
-            query = (
-                update(Product)
-                .where(Product.id == product_id)
-                .values(additional_images_urls=additional_images_urls)
-                .returning(Product)
-            )
-
-            result = await self.session.execute(query)
-            product = result.scalar_one_or_none()
-
-            if product:
-                await self.session.commit()
-                logger.info(
-                    "Updated product additional images",
-                    extra={
-                        "product_id": str(product_id),
-                        "images_count": len(additional_images_urls),
-                    },
-                )
-
-            return product
-
-        except Exception as e:
-            await self.session.rollback()
-            logger.error("Failed to update product images", exc_info=True)
-            raise
+        logger.warning(
+            "`update_product_images` is deprecated. Use `update_product` instead."
+        )
+        update_schema = SProductUpdate(**image_data)
+        return await self.update_product(product_id, update_schema)
 
     async def search_products(
         self, search_query: str, skip: int = 0, limit: int = 10
     ) -> tuple[List[Product], int]:
         """
         Поиск товаров по названию среди АКТИВНЫХ товаров
-
-        Args:
-            search_query: Поисковый запрос
-            skip: Сколько записей пропустить
-            limit: Сколько записей вернуть
-
-        Returns:
-            Tuple[List[Product], int]: Список найденных активных товаров и общее количество
         """
         try:
             query = (
@@ -343,19 +256,16 @@ class ProductCRUD:
                         Product.is_active == True,
                     )
                 )
-                .options(
-                    selectinload(Product.additional_images),
-                    joinedload(Product.category),
-                )
+                .options(joinedload(Product.category))
             )
 
             count_query = select(func.count()).select_from(query.subquery())
             total = await self.session.scalar(count_query)
 
-            query = query.offset(skip).limit(limit)
+            query = query.order_by(Product.name).offset(skip).limit(limit)
 
             result = await self.session.execute(query)
-            products = result.scalars().all()
+            products = result.unique().scalars().all()
 
             logger.debug(
                 "Product search completed",
@@ -367,9 +277,7 @@ class ProductCRUD:
                     "limit": limit,
                 },
             )
-
             return products, total
-
         except Exception as e:
             logger.error(
                 "Failed to search products",

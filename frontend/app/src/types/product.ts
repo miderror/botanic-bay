@@ -9,7 +9,7 @@ export interface IProduct {
   category: string;
   image_url: string | null;
   background_image_url: string | null;
-  additional_images_urls?: string[]; // Добавляем поле для дополнительных изображений
+  header_image_url: string | null;
   sku: string | null;
   createdAt: string;
   updatedAt: string;

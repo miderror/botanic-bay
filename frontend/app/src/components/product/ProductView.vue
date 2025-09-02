@@ -24,7 +24,6 @@ defineEmits<{
   (e: "update:isOpen", value: boolean): void;
 }>();
 
-const currentAdditionalImageIndex = ref(0);
 const modalContent = ref<HTMLElement | null>(null);
 const isLoading = ref(false);
 const isDescriptionExpanded = ref(false);
@@ -50,10 +49,9 @@ const headerBackgroundStyle = computed(() => {
         backgroundPosition: "center",
     };
 });
-const additionalImages = computed(() => props.product?.additional_images_urls?.filter(Boolean) || []);
-const hasAdditionalImages = computed(() => additionalImages.value.length > 0);
-const hasMultipleAdditionalImages = computed(() => additionalImages.value.length > 1);
-const currentAdditionalImage = computed(() => getImageUrl(additionalImages.value[currentAdditionalImageIndex.value] || null));
+
+const headerImageUrl = computed(() => getImageUrl(props.product?.header_image_url || null));
+const hasHeaderImage = computed(() => !!props.product?.header_image_url);
 const mainImageUrl = computed(() => getImageUrl(props.product?.image_url || null));
 const sanitizedDescription = computed(() => {
   if (!props.product?.description) return "";
@@ -68,12 +66,6 @@ const sanitizedAdditionalDescription = computed(() => {
 });
 const isInCart = computed(() => cart.value?.items.some((item) => item.product_id === props.product?.id));
 
-const prevAdditionalImage = () => {
-  if (currentAdditionalImageIndex.value > 0) currentAdditionalImageIndex.value--;
-};
-const nextAdditionalImage = () => {
-  if (currentAdditionalImageIndex.value < additionalImages.value.length - 1) currentAdditionalImageIndex.value++;
-};
 const toggleDescriptionExpanded = () => {
   isDescriptionExpanded.value = !isDescriptionExpanded.value;
 };
@@ -108,18 +100,8 @@ watch(() => props.product?.id, () => {
                     <div class="decorative-overlay"></div>
                 </div>
             </div>
-            <div v-if="hasAdditionalImages" class="additional-images-carousel">
-                <button v-if="hasMultipleAdditionalImages" class="carousel-btn prev" @click="prevAdditionalImage" aria-label="Предыдущее изображение">
-                    <span>&larr;</span>
-                </button>
-                <div class="carousel-container">
-                    <div class="carousel-image-wrapper">
-                        <img :src="currentAdditionalImage" :alt="product.name" class="carousel-image" @error="handleImageError" />
-                    </div>
-                </div>
-                <button v-if="hasMultipleAdditionalImages" class="carousel-btn next" @click="nextAdditionalImage" aria-label="Следующее изображение">
-                    <span>&rarr;</span>
-                </button>
+            <div v-if="hasHeaderImage" class="product-header-image-container">
+                <img :src="headerImageUrl" :alt="product.name" class="header-image" @error="handleImageError" />
             </div>
             <div class="product-content-wrapper">
                 <div class="product-main-info">
